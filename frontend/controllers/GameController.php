@@ -44,7 +44,7 @@ class GameController extends Controller
     {
         return [
             'success' => true,
-            'lobbies' => Game::find()->where(['state' => Game::STATE_INLOBBY])->all()
+            'lobbies' => Game::find()->all()
         ];
     }
 
@@ -52,19 +52,22 @@ class GameController extends Controller
     {
         $clientToken = \Yii::$app->request->get('clientToken');
         $gameName = \Yii::$app->request->get('gameName');
-
         if(empty($clientToken)){
             return $this->errorResponse(["No clienttoken defined!"]);
         }
 
-        if(!User::isValidToken($clientToken)){
+        /** @var User $user */
+        $user = User::find()->where(['generated_id' => $clientToken])->one();
+        if(empty($user)){
             return $this->errorResponse(["Invalid Token"]);
         }
 
         $newGame = new Game();
         $newGame->game_name = empty($gameName) ? "CAH Game ".mt_rand() : $gameName;
+        $newGame->state = Game::STATE_INLOBBY;
 
         if($newGame->save()){
+            $user->updateActivity();
             return [
                 'success' => true,
                 'lobbyId' => $newGame->game_id
@@ -95,6 +98,12 @@ class GameController extends Controller
         ];
     }
 
+    /**
+     * The standard form for an error response
+     *
+     * @param array $error
+     * @return array
+     */
     private function errorResponse($error = [])
     {
         return [

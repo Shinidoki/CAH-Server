@@ -90,9 +90,15 @@ class User extends \yii\db\ActiveRecord
         return $this->hasMany(Game::className(), ['game_id' => 'game_id'])->viaTable('{{%gameusers}}', ['user_id' => 'user_id']);
     }
 
+    public function updateActivity()
+    {
+        $this->last_activity = date('Y-m-d H:i:s');
+        return $this->save();
+    }
+
     public static function isValidToken($token)
     {
         $found = self::find()->where(['generated_id' => $token])->one();
-        return empty($found);
+        return !empty($found);
     }
 }
