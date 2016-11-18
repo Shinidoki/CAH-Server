@@ -67,6 +67,7 @@ class GameController extends Controller
         $newGame->state = Game::STATE_INLOBBY;
 
         if($newGame->save()){
+            $user->link('games',$newGame);
             $user->updateActivity();
             return [
                 'success' => true,
@@ -86,7 +87,8 @@ class GameController extends Controller
     {
         $lobbyId = \Yii::$app->request->get('lobbyId');
 
-        $game = Game::find()->where($lobbyId)->with('cards')->one();
+        /** @var Game $game */
+        $game = Game::find()->where(['game_id' => $lobbyId])->one();
 
         if(empty($game)){
             return $this->errorResponse(["Lobby not found."]);
@@ -94,7 +96,8 @@ class GameController extends Controller
 
         return [
             'success' => true,
-            'settings' => $game
+            'settings' => $game,
+            'players' => $game->getCensoredUsers(),
         ];
     }
 
