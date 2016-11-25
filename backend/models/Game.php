@@ -2,8 +2,6 @@
 
 namespace backend\models;
 
-use Yii;
-
 /**
  * This is the model class for table "{{%game}}".
  *
@@ -15,7 +13,9 @@ use Yii;
  * @property integer $game_mode
  * @property integer $target_score
  * @property integer $kicktimer
+ * @property integer $host_user_id
  *
+ * @property User $hostUser
  * @property Gamecards[] $gamecards
  * @property Card[] $cards
  * @property Gameusers[] $gameusers
@@ -27,6 +27,7 @@ class Game extends \yii\db\ActiveRecord
     const STATE_STARTED = 1;
     const STATE_FINISHED = 2;
     const STATE_PAUSED = 3;
+    const MAX_PLAYERS = 10;
 
     /**
      * @inheritdoc
@@ -43,9 +44,10 @@ class Game extends \yii\db\ActiveRecord
     {
         return [
             [['create_date', 'last_activity'], 'safe'],
-            [['game_name'], 'required'],
-            [['state', 'game_mode', 'target_score', 'kicktimer'], 'integer'],
+            [['game_name', 'host_user_id'], 'required'],
+            [['state', 'game_mode', 'target_score', 'kicktimer', 'host_user_id'], 'integer'],
             [['game_name'], 'string', 'max' => 50],
+            [['host_user_id'], 'exist', 'skipOnError' => true, 'targetClass' => User::className(), 'targetAttribute' => ['host_user_id' => 'user_id']],
         ];
     }
 
@@ -63,7 +65,16 @@ class Game extends \yii\db\ActiveRecord
             'game_mode' => 'Game Mode',
             'target_score' => 'Target Score',
             'kicktimer' => 'Kicktimer',
+            'host_user_id' => 'Host User ID',
         ];
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getHostUser()
+    {
+        return $this->hasOne(User::className(), ['user_id' => 'host_user_id']);
     }
 
     /**

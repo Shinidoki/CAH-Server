@@ -2,14 +2,12 @@
 namespace frontend\controllers;
 
 
-use backend\models\Card;
 use backend\models\Game;
 use backend\models\User;
 use yii\web\Controller;
-use yii\web\ForbiddenHttpException;
 use yii\web\Response;
 
-class GameController extends Controller
+class LobbyController extends Controller
 {
     public function beforeAction($action)
     {
@@ -42,9 +40,11 @@ class GameController extends Controller
 
     public function actionGetLobbies()
     {
+        $games = Game::find()->select(['cah_game.*', 'userCount' => 'COUNT(user_id)'])->leftJoin('cah_gameusers', ['cah_game.game_id' => 'cah_gameusers.game_id'])->groupBy('cah_game.game_id')->asArray()->all();
+
         return [
             'success' => true,
-            'lobbies' => Game::find()->all()
+            'lobbies' => $games
         ];
     }
 
@@ -66,7 +66,9 @@ class GameController extends Controller
         $newGame->game_name = empty($gameName) ? "CAH Game ".mt_rand() : $gameName;
         $newGame->state = Game::STATE_INLOBBY;
 
+
         if($newGame->save()){
+            $newGame->link('hostUser', $user);
             $user->link('games',$newGame);
             $user->updateActivity();
             return [
@@ -76,6 +78,42 @@ class GameController extends Controller
         } else {
             return $this->errorResponse($newGame->errors);
         }
+    }
+
+    public function actionJoinLobby()
+    {
+        $clientToken = \Yii::$app->request->get('clientToken');
+        $lobbyId = \Yii::$app->request->get('lobbyId');
+
+        if (empty($clientToken)) {
+            return $this->errorResponse(["ClientToken not set."]);
+        }
+
+        if (empty($lobbyId)) {
+            return $this->errorResponse(["LobbyId not set."]);
+        }
+
+        /** @var User $user */
+        $user = User::find()->where(['generated_id' => $clientToken])->one();
+        if (empty($user)) {
+            return $this->errorResponse(["Invalid Token"]);
+        }
+
+        /** @var Game $game */
+        $game = Game::find()->where(['game_id' => $lobbyId])->one();
+        if (empty($game)) {
+            return $this->errorResponse(["There is no Game with this ID"]);
+        }
+
+        if (count($game->gameusers) >= Game::MAX_PLAYERS) {
+            return $this->errorResponse(["Max. Player count reached."]);
+        }
+
+        $game->link('users', $user);
+
+        return [
+            'success' => true
+        ];
     }
 
     public function actionUsers()

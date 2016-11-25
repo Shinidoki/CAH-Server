@@ -2,8 +2,6 @@
 
 namespace backend\models;
 
-use Yii;
-
 /**
  * This is the model class for table "{{%user}}".
  *
@@ -17,6 +15,7 @@ use Yii;
  * @property Gamecards[] $gamecards
  * @property Gameusers[] $gameusers
  * @property Game[] $games
+ * @property Game[] $hostedGames
  */
 class User extends \yii\db\ActiveRecord
 {
@@ -80,6 +79,14 @@ class User extends \yii\db\ActiveRecord
     public function getGameusers()
     {
         return $this->hasMany(Gameusers::className(), ['user_id' => 'user_id']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getHostedGames()
+    {
+        return $this->hasMany(Game::className(), ['host_user_id' => 'user_id']);
     }
 
     /**
