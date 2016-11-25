@@ -40,7 +40,7 @@ class LobbyController extends Controller
 
     public function actionGetLobbies()
     {
-        $games = Game::find()->select(['cah_game.*', 'userCount' => 'COUNT(user_id)'])->leftJoin('cah_gameusers', ['cah_game.game_id' => 'cah_gameusers.game_id'])->groupBy('cah_game.game_id')->asArray()->all();
+        $games = Game::find()->select(['cah_game.*', 'userCount' => 'COUNT(user_id)'])->leftJoin('cah_gameusers', 'cah_game.game_id = cah_gameusers.game_id')->groupBy('cah_game.game_id')->asArray()->all();
 
         return [
             'success' => true,

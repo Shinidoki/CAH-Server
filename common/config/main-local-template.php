@@ -7,7 +7,14 @@ return [
             'username' => 'user',
             'password' => 'pw',
             'charset' => 'utf8',
-            'tablePrefix' => 'cah_'
+            'tablePrefix' => 'cah_',
+            'enableSchemaCache' => !YII_ENV_DEV,
+
+            // Duration of schema cache.
+            'schemaCacheDuration' => 3600,
+
+            // Name of the cache component used to store schema information
+            'schemaCache' => 'cache',
         ],
         'mailer' => [
             'class' => 'yii\swiftmailer\Mailer',
