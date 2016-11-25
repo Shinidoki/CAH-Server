@@ -97,4 +97,14 @@ class Game extends \yii\db\ActiveRecord
     {
         return $this->hasMany(User::className(), ['user_id' => 'user_id'])->viaTable('{{%gameusers}}', ['game_id' => 'game_id']);
     }
+
+    /**
+     * Get only the data that clients are allowed to see
+     *
+     * @return User[]
+     */
+    public function getCensoredUsers()
+    {
+        return $this->getUsers()->select(['user_id','user_name','is_judge','score','last_activity'])->all();
+    }
 }

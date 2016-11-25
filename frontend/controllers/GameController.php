@@ -44,7 +44,7 @@ class GameController extends Controller
     {
         return [
             'success' => true,
-            'lobbies' => Game::find()->where(['state' => Game::STATE_INLOBBY])->all()
+            'lobbies' => Game::find()->all()
         ];
     }
 
@@ -52,19 +52,23 @@ class GameController extends Controller
     {
         $clientToken = \Yii::$app->request->get('clientToken');
         $gameName = \Yii::$app->request->get('gameName');
-
         if(empty($clientToken)){
             return $this->errorResponse(["No clienttoken defined!"]);
         }
 
-        if(!User::isValidToken($clientToken)){
+        /** @var User $user */
+        $user = User::find()->where(['generated_id' => $clientToken])->one();
+        if(empty($user)){
             return $this->errorResponse(["Invalid Token"]);
         }
 
         $newGame = new Game();
         $newGame->game_name = empty($gameName) ? "CAH Game ".mt_rand() : $gameName;
+        $newGame->state = Game::STATE_INLOBBY;
 
         if($newGame->save()){
+            $user->link('games',$newGame);
+            $user->updateActivity();
             return [
                 'success' => true,
                 'lobbyId' => $newGame->game_id
@@ -83,7 +87,8 @@ class GameController extends Controller
     {
         $lobbyId = \Yii::$app->request->get('lobbyId');
 
-        $game = Game::find()->where($lobbyId)->with('cards')->one();
+        /** @var Game $game */
+        $game = Game::find()->where(['game_id' => $lobbyId])->one();
 
         if(empty($game)){
             return $this->errorResponse(["Lobby not found."]);
@@ -91,10 +96,17 @@ class GameController extends Controller
 
         return [
             'success' => true,
-            'settings' => $game
+            'settings' => $game,
+            'players' => $game->getCensoredUsers(),
         ];
     }
 
+    /**
+     * The standard form for an error response
+     *
+     * @param array $error
+     * @return array
+     */
     private function errorResponse($error = [])
     {
         return [
