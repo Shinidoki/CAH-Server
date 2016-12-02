@@ -10,6 +10,8 @@ namespace backend\models;
  *
  * @property Cardcategory[] $cardcategories
  * @property Card[] $cards
+ * @property Gamecategories[] $gamecategories
+ * @property Game[] $games
  */
 class Category extends \yii\db\ActiveRecord
 {
@@ -57,5 +59,21 @@ class Category extends \yii\db\ActiveRecord
     public function getCards()
     {
         return $this->hasMany(Card::className(), ['card_id' => 'card_id'])->viaTable('{{%cardcategory}}', ['cat_id' => 'cat_id']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getGamecategories()
+    {
+        return $this->hasMany(Gamecategories::className(), ['category_id' => 'cat_id']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getGames()
+    {
+        return $this->hasMany(Game::className(), ['game_id' => 'game_id'])->viaTable('{{%gamecategories}}', ['category_id' => 'cat_id']);
     }
 }
