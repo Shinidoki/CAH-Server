@@ -32,7 +32,7 @@ class Card extends \yii\db\ActiveRecord
         return [
             [['text', 'is_black'], 'required'],
             [['is_black'], 'integer'],
-            [['text'], 'string', 'max' => 100],
+            [['text'], 'string', 'max' => 300],
         ];
     }
 
