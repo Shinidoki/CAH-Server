@@ -47,6 +47,16 @@ class StaticController extends Controller
         $user3->last_activity = date("Y-m-d h:i:s");
         $user3->user_id = 2;
 
+        $user2 = new User();
+        $user2->user_name = "Kabanak";
+        $user2->last_activity = date("Y-m-d h:i:s");
+        $user2->user_id = 1;
+
+        $user3 = new User();
+        $user3->user_name = "Shinidoki";
+        $user3->last_activity = date("Y-m-d h:i:s");
+        $user3->user_id = 2;
+
         return [
             'started' => 1,
             'players' => [
@@ -104,9 +114,9 @@ class StaticController extends Controller
 
     public function actionSetLobbySettings()
     {
-        return [
+        return[
             'success' => true,
-            'settings' => [
+            'settings' =>[
                 'gamemode' => 1,
                 'targetscore' => 5000,
                 'cardpacks' => [
@@ -120,7 +130,7 @@ class StaticController extends Controller
 
     public function actionRemoveFromLobby()
     {
-        return [
+        return[
             'success' => true
         ];
     }
@@ -128,42 +138,58 @@ class StaticController extends Controller
     public function actionImportJson()
     {
         \Yii::$app->response->format = Response::FORMAT_HTML;
-        $JSON = '{"blackCards":[{"pick":1,"text":"Trump\'s great!  Trump\'s got _.  I love that."},{"pick":1,"text":"According to Arizona\'s stand-your-ground law, you\'re allowed to shoot someone if they\'re _."},{"pick":1,"text":"It\'s 3AM.  The red phone rings.  It\'s _.  Who do you want answering?"}],"whiteCards":["Actually voting for Donald Trump to be President of the actual United States.","A liberal bias.","Hating Hillary Clinton.","Growing up and becoming a Republican.","Courageously going ahead with that racist comment.","Dispelling this fiction that Barack Obama doesn\'t know what he\'s doing.","Jeb!","The good, hardworking people of Dubuque, Iowa.","Conservative talking points.","Shouting the loudest","Sound of fiscal policy.","Full-on socialism."],"trumpvote":{"name":"Vote for Trump Pack","black":[0,1,2],"white":[0,1,2,3,4,5,6,7,8,9,10,11],"icon":"bullhorn"},"order":["trumpvote"]}';
 
-        $JSON = Json::decode($JSON);
+        $url = 'http://www.crhallberg.com/cah/output.php';
 
-        VarDumper::dump($JSON, 10, true);
+        $myvars = 'decks%5B%5D=Base&decks%5B%5D=CAHe1&decks%5B%5D=CAHe2&decks%5B%5D=CAHe3&decks%5B%5D=CAHe4&decks%5B%5D=CAHe5&decks%5B%5D=CAHe6&decks%5B%5D=90s&decks%5B%5D=Box&decks%5B%5D=fantasy&decks%5B%5D=food&decks%5B%5D=science&decks%5B%5D=www&decks%5B%5D=hillary&decks%5B%5D=trumpvote&decks%5B%5D=xmas2012&decks%5B%5D=xmas2013&decks%5B%5D=PAXE2013&decks%5B%5D=PAXP2013&decks%5B%5D=PAXE2014&decks%5B%5D=PAXEP2014&decks%5B%5D=PAXPP2014&decks%5B%5D=PAX2015&decks%5B%5D=HOCAH&decks%5B%5D=reject&decks%5B%5D=reject2&decks%5B%5D=Canadian&decks%5B%5D=misprint&type=JSON';
 
-        foreach ($JSON['order'] as $category_short) {
+        $ch = curl_init( $url );
+        curl_setopt( $ch, CURLOPT_POST, 1);
+        curl_setopt( $ch, CURLOPT_POSTFIELDS, $myvars);
+        curl_setopt( $ch, CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt( $ch, CURLOPT_HEADER, 0);
+        curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1);
+
+        $response = curl_exec( $ch );
+        $JSON = Json::decode($response);
+
+        foreach ($JSON['order'] as $category_short)
+        {
             $category = $JSON[$category_short];
             $cat = new Category();
             $cat->name = $category['name'];
-            //$cat->save();
+            $cat->save();
 
-            foreach ($category['black'] as $black) {
+            foreach ($category['black'] as $black)
+            {
                 $crd_black = $JSON['blackCards'][$black];
                 $crd = new Card();
                 $crd->is_black = 1;
                 $crd->text = $crd_black['text'];
-                //TODO Pick-Zahl ergänzen
-                $crd->save();
+                $crd->blanks = $crd_black['pick'];
+                if ($crd->save()) {
+                    $crd->setIsNewRecord(false);
+                    $crd->link('cats', $cat);
+                }else{
+                    VarDumper::dump($crd->errors, 10, true);
+                    die;
+                }
             }
 
-            foreach ($category['white'] as $white) {
-                $crd_white = $JSON['blackCards'][$white];
+            foreach ($category['white'] as $white)
+            {
+                $crd_white = $JSON['whiteCards'][$white];
                 $crd = new Card();
-                $crd->is_black = 1;
-                $crd->text = $crd_white['text'];
-                //TODO Pick-Zahl ergänzen
-                $crd->save();
+                $crd->text = $crd_white;
+                $crd->is_black = 0;
+                if ($crd->save()) {
+                    $crd->setIsNewRecord(false);
+                    $crd->link('cats', $cat);
+                }else{
+                    VarDumper::dump($crd->errors, 10, true);
+                    die;
+                }
             }
         }
-//        foreach ($JSON['blackCards'] as $blackCard)
-//        {
-//            $crd = new Card();
-//            $crd->text = $blackCard['text'];
-//            $crd->is_black = 1;
-//            $crd->save();
-//        }
     }
 }
