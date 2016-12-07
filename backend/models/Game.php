@@ -2,6 +2,8 @@
 
 namespace backend\models;
 
+use yii\db\ActiveQuery;
+
 /**
  * This is the model class for table "{{%game}}".
  *
@@ -30,6 +32,7 @@ class Game extends \yii\db\ActiveRecord
     const STATE_FINISHED = 2;
     const STATE_PAUSED = 3;
     const MAX_PLAYERS = 10;
+    const MAX_CARDS = 10;
 
     /**
      * @inheritdoc
@@ -114,6 +117,17 @@ class Game extends \yii\db\ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
+    public function getFreeCards()
+    {
+        return $this->hasMany(Card::className(), ['card_id' => 'card_id'])->viaTable('{{%gamecards}}', ['game_id' => 'game_id'], function ($query) {
+            /** @var ActiveQuery $query */
+            $query->andWhere(['user_id' => NULL]);
+        });
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
     public function getGameusers()
     {
         return $this->hasMany(Gameusers::className(), ['game_id' => 'game_id']);
@@ -136,4 +150,6 @@ class Game extends \yii\db\ActiveRecord
     {
         return $this->getUsers()->select(['user_id','user_name','is_judge','score','last_activity'])->all();
     }
+
+
 }

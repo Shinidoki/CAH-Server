@@ -127,13 +127,14 @@ class LobbyController extends Controller
         $lobbyId = \Yii::$app->request->get('lobbyId');
 
         /** @var Game $game */
-        $game = Game::find()->where(['game_id' => $lobbyId])->one();
+        $game = Game::find()->with('categories')->where(['game_id' => $lobbyId])->one();
 
         if(empty($game)){
             return $this->errorResponse(["Lobby not found."]);
         }
         $settings = $game->toArray();
         $settings['max_players'] = Game::MAX_PLAYERS;
+        $settings['categories'] = $game->categories;
         return [
             'success' => true,
             'settings' => $settings,
@@ -170,6 +171,35 @@ class LobbyController extends Controller
         }
 
         Gameusers::deleteAll(['game_id' => $lobby->game_id, 'user_id' => $kickedUser]);
+        return ['success' => true];
+    }
+
+    public function actionStartGame()
+    {
+        $lobbyId = \Yii::$app->request->get('lobbyId');
+        $clientToken = \Yii::$app->request->get('clientToken');
+
+        if (empty($lobbyId)) {
+            return $this->errorResponse(["LobbyId not set."]);
+        }
+
+        $tokenCheck = $this->checkClientToken($clientToken);
+
+        if (!$tokenCheck['success']) {
+            return $this->errorResponse([$tokenCheck['error']]);
+        }
+
+        /** @var User $host */
+        $host = $tokenCheck['user'];
+
+        /** @var Game $lobby */
+        $lobby = Game::find()->where(['game_id' => $lobbyId, 'host_user_id' => $host->user_id])->one();
+
+        if (empty($lobby)) {
+            return $this->errorResponse(["No Lobby with this ID found or you are not the host"]);
+        }
+
+        $lobby->start();
         return ['success' => true];
     }
 
