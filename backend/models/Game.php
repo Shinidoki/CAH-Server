@@ -1,6 +1,7 @@
 <?php
 
 namespace backend\models;
+use yii\db\ActiveQuery;
 
 /**
  * This is the model class for table "{{%game}}".
@@ -30,6 +31,7 @@ class Game extends \yii\db\ActiveRecord
     const STATE_FINISHED = 2;
     const STATE_PAUSED = 3;
     const MAX_PLAYERS = 10;
+    const MAX_CARDS = 10;
 
     /**
      * @inheritdoc
@@ -114,6 +116,17 @@ class Game extends \yii\db\ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
+    public function getFreeCards()
+    {
+        return $this->hasMany(Card::className(), ['card_id' => 'card_id'])->viaTable('{{%gamecards}}', ['game_id' => 'game_id'], function($query){
+            /** @var ActiveQuery $query */
+            $query->andWhere(['user_id' => NULL]);
+        });
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
     public function getGameusers()
     {
         return $this->hasMany(Gameusers::className(), ['game_id' => 'game_id']);
@@ -135,5 +148,29 @@ class Game extends \yii\db\ActiveRecord
     public function getCensoredUsers()
     {
         return $this->getUsers()->select(['user_id','user_name','is_judge','score','last_activity'])->all();
+    }
+
+    public function start()
+    {
+        $this->state = self::STATE_STARTED;
+        /** @var Category[] $cats */
+        $cats = $this->getCategories()->with('cards')->all();
+        $batchinsert = [];
+        foreach ($cats as $category)
+        {
+            $cards = $category->cards;
+            foreach ($cards as $card)
+            {
+                $batchinsert[] = [
+                    'game_id' => $this->game_id,
+                    'user_id' => NULL,
+                    'card_id' => $card->card_id
+                ];
+            }
+        }
+        if (!empty($batchinsert))
+        {
+            self::getDb()->createCommand()->batchInsert(Gamecards::tableName(), array_keys($batchinsert[0]), $batchinsert)->query();
+        }
     }
 }
