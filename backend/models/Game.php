@@ -182,5 +182,19 @@ class Game extends \yii\db\ActiveRecord
         $this->save();
     }
 
+    /**
+     * @return null|User
+     */
+    public function getJudge()
+    {
+        return $this->getUsers()->where(['is_judge' => 1])->one();
+    }
 
+    /**
+     * @return null|Card
+     */
+    public function getCurrentBlackCard()
+    {
+        return $this->getCards()->joinWith('gamecards')->where(['is_black' => 1])->andWhere(['IS NOT', 'user_id', NULL])->one();
+    }
 }

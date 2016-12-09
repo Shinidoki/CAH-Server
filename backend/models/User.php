@@ -108,4 +108,12 @@ class User extends \yii\db\ActiveRecord
         $found = self::find()->where(['generated_id' => $token])->one();
         return !empty($found);
     }
+
+    /**
+     * @return Gamecards[]
+     */
+    public function getCurrentChosenCards()
+    {
+        return $this->getGamecards()->where(['is_chosen' => 1])->all();
+    }
 }
