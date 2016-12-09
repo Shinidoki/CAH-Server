@@ -2,6 +2,7 @@
 namespace frontend\controllers;
 
 
+use backend\models\Category;
 use backend\models\Game;
 use backend\models\Gameusers;
 use backend\models\User;
@@ -30,7 +31,7 @@ class LobbyController extends Controller
 
         $newUser = new User();
         $newUser->user_name = $userName;
-        if($newUser->save()){
+        if ($newUser->updateActivity()) {
             return [
                 'success' => true,
                 'clientToken' => $newUser->generated_id
@@ -42,7 +43,7 @@ class LobbyController extends Controller
 
     public function actionGetLobbies()
     {
-        $games = Game::find()->select(['cah_game.*', 'userCount' => 'COUNT(user_id)'])->addSelect(new Expression("10 as max_players"))->leftJoin('cah_gameusers', 'cah_game.game_id = cah_gameusers.game_id')->groupBy('cah_game.game_id')->asArray()->all();
+        $games = Game::find()->select(['cah_game.*', 'user_count' => 'COUNT(user_id)'])->addSelect(new Expression("10 as max_players"))->leftJoin('cah_gameusers', 'cah_game.game_id = cah_gameusers.game_id')->groupBy('cah_game.game_id')->asArray()->all();
 
         return [
             'success' => true,
@@ -69,9 +70,12 @@ class LobbyController extends Controller
         $newGame->state = Game::STATE_INLOBBY;
         $newGame->host_user_id = $user->user_id;
 
-        if($newGame->save()){
+        if ($newGame->updateActivity()) {
             $newGame->link('hostUser', $user);
+            $newGame->link('categories', Category::find()->one());
+            Gameusers::deleteAll(['user_id' => $user->user_id]);
             $user->link('games',$newGame);
+            $user->is_judge = 1;
             $user->updateActivity();
             return [
                 'success' => true,
@@ -109,7 +113,8 @@ class LobbyController extends Controller
         if (count($game->gameusers) >= Game::MAX_PLAYERS) {
             return $this->errorResponse(["Max. Player count reached."]);
         }
-
+        $user->updateActivity();
+        $game->updateActivity();
         $game->link('users', $user);
 
         return [
@@ -169,7 +174,8 @@ class LobbyController extends Controller
         if (empty($lobby)) {
             return $this->errorResponse(["User is not the host, or lobby with this ID doesn't exist!"]);
         }
-
+        $host->updateActivity();
+        $lobby->updateActivity();
         Gameusers::deleteAll(['game_id' => $lobby->game_id, 'user_id' => $kickedUser]);
         return ['success' => true];
     }
@@ -199,6 +205,11 @@ class LobbyController extends Controller
             return $this->errorResponse(["No Lobby with this ID found or you are not the host"]);
         }
 
+        if ($lobby->state != Game::STATE_INLOBBY) {
+            return $this->errorResponse(["Lobby is already ingame!"]);
+        }
+        $host->updateActivity();
+        $lobby->updateActivity();
         $lobby->start();
         return ['success' => true];
     }
@@ -230,5 +241,6 @@ class LobbyController extends Controller
             'success' => false,
             'errors' => $error
         ];
+
     }
 }

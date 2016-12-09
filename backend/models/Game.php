@@ -150,6 +150,13 @@ class Game extends \yii\db\ActiveRecord
         return $this->getUsers()->select(['user_id','user_name','is_judge','score','last_activity'])->all();
     }
 
+    public function updateActivity()
+    {
+        $this->last_activity = date('Y-m-d H:i:s');
+        return $this->save();
+    }
+
+
     public function start()
     {
         $this->state = self::STATE_STARTED;
@@ -172,5 +179,6 @@ class Game extends \yii\db\ActiveRecord
         {
             self::getDb()->createCommand()->batchInsert(Gamecards::tableName(), array_keys($batchinsert[0]), $batchinsert)->query();
         }
+        $this->save();
     }
 }
