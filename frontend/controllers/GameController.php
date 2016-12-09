@@ -5,6 +5,7 @@ namespace frontend\controllers;
 
 use backend\models\Game;
 use backend\models\Gamecards;
+use backend\models\Gameusers;
 use backend\models\User;
 use yii\web\Controller;
 use yii\web\Response;
@@ -48,6 +49,10 @@ class GameController extends Controller
 
         $playedCard->is_chosen = 1;
         $playedCard->save();
+        $user->updateActivity();
+        $lobby->updateActivity();
+
+        return ['success'=>true];
     }
 
     private function checkRequest()
@@ -95,6 +100,39 @@ class GameController extends Controller
         }
 
         return ['success' => true, 'user' => $user];
+    }
+
+    public function actionGetCurrentChosenCards()
+    {
+        $clientToken = \Yii::$app->request->get('clientToken');
+        $lobbyId = \Yii::$app->request->get('lobbyId');
+        if(empty($clientToken)){
+            return $this->errorResponse(["No clienttoken defined!"]);
+        }
+
+        /** @var User $user */
+        $user = User::find()->where(['generated_id' => $clientToken])->one();
+        if(empty($user)){
+            return $this->errorResponse(["Invalid Token"]);
+        }
+        /** @var Game $game */
+        $game = Game::find()->where(['game_id' => $lobbyId])->one();
+        if(empty($game)){
+            return $this->errorResponse(["Invalid Game"]);
+        }
+        $gameuser = Gameusers::find()->where(['game_id' => $game->game_id, 'user_id' => $user->user_id]);
+        if(empty($gameuser)){
+            return $this->errorResponse(["User not in this game"]);
+        }
+
+        if($game->getCurrentBlackCard()->blanks * count($game->getGameusers()->all()) == count($game->getGamecards()->andWhere(['is_chosen' => 1])->all())){
+            $allChosen = 1;
+        }else{
+            $allChosen = 0;
+        }
+
+        $gamecards = $game->getGamecards()->joinWith('card',false)->select(['cah_card.card_id','text'])->asArray()->andWhere(['is_black' => 0, 'is_chosen' => 1])->andWhere(['IS NOT', 'user_id', NULL])->all();
+        return ['cards'=>$gamecards,'allChosen'=>$allChosen];
     }
 
     /**
