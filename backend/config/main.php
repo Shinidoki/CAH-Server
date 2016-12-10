@@ -35,16 +35,15 @@ return [
             ],
         ],
         'errorHandler' => [
-            'errorAction' => 'site/error',
+            'errorAction' => 'dashboard/error',
         ],
-        /*
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+                '' => 'dashboard/index'
             ],
         ],
-        */
     ],
     'params' => $params,
 ];
