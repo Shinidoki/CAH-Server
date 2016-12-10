@@ -8,6 +8,7 @@ namespace backend\models;
  * @property integer $card_id
  * @property string $text
  * @property integer $is_black
+ * @property integer $blanks
  *
  * @property Cardcategory[] $cardcategories
  * @property Category[] $cats
@@ -31,7 +32,7 @@ class Card extends \yii\db\ActiveRecord
     {
         return [
             [['text', 'is_black'], 'required'],
-            [['is_black'], 'integer'],
+            [['is_black', 'blanks'], 'integer'],
             [['text'], 'string', 'max' => 300],
         ];
     }
@@ -45,6 +46,7 @@ class Card extends \yii\db\ActiveRecord
             'card_id' => 'Card ID',
             'text' => 'Text',
             'is_black' => 'Is Black',
+            'blanks' => 'Blanks',
         ];
     }
 
