@@ -84,33 +84,9 @@ class Game extends \yii\db\ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getCategories()
-    {
-        return $this->hasMany(Category::className(), ['cat_id' => 'category_id'])->viaTable('{{%gamecategories}}', ['game_id' => 'game_id']);
-    }
-
-    /**
-     * @return \yii\db\ActiveQuery
-     */
     public function getHostUser()
     {
         return $this->hasOne(User::className(), ['user_id' => 'host_user_id']);
-    }
-
-    /**
-     * @return \yii\db\ActiveQuery
-     */
-    public function getGamecards()
-    {
-        return $this->hasMany(Gamecards::className(), ['game_id' => 'game_id']);
-    }
-
-    /**
-     * @return \yii\db\ActiveQuery
-     */
-    public function getCards()
-    {
-        return $this->hasMany(Card::className(), ['card_id' => 'card_id'])->viaTable('{{%gamecards}}', ['game_id' => 'game_id']);
     }
 
     /**
@@ -125,11 +101,13 @@ class Game extends \yii\db\ActiveRecord
     }
 
     /**
-     * @return \yii\db\ActiveQuery
+     * Get only the data that clients are allowed to see
+     *
+     * @return User[]
      */
-    public function getGameusers()
+    public function getCensoredUsers()
     {
-        return $this->hasMany(Gameusers::className(), ['game_id' => 'game_id']);
+        return $this->getUsers()->select(['user_id', 'user_name', 'is_judge', 'score', 'last_activity'])->all();
     }
 
     /**
@@ -140,22 +118,11 @@ class Game extends \yii\db\ActiveRecord
         return $this->hasMany(User::className(), ['user_id' => 'user_id'])->viaTable('{{%gameusers}}', ['game_id' => 'game_id']);
     }
 
-    /**
-     * Get only the data that clients are allowed to see
-     *
-     * @return User[]
-     */
-    public function getCensoredUsers()
-    {
-        return $this->getUsers()->select(['user_id','user_name','is_judge','score','last_activity'])->all();
-    }
-
     public function updateActivity()
     {
         $this->last_activity = date('Y-m-d H:i:s');
         return $this->save();
     }
-
 
     public function start()
     {
@@ -183,6 +150,14 @@ class Game extends \yii\db\ActiveRecord
     }
 
     /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getCategories()
+    {
+        return $this->hasMany(Category::className(), ['cat_id' => 'category_id'])->viaTable('{{%gamecategories}}', ['game_id' => 'game_id']);
+    }
+
+    /**
      * @return null|User
      */
     public function getJudge()
@@ -196,5 +171,58 @@ class Game extends \yii\db\ActiveRecord
     public function getCurrentBlackCard()
     {
         return $this->getCards()->joinWith('gamecards')->where(['is_black' => 1])->andWhere(['IS NOT', 'user_id', NULL])->one();
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getCards()
+    {
+        return $this->hasMany(Card::className(), ['card_id' => 'card_id'])->viaTable('{{%gamecards}}', ['game_id' => 'game_id']);
+    }
+
+    public function timeOutUsers()
+    {
+        $timeOut = date('Y-m-d H:i:s', strtotime("-{$this->kicktimer} seconds"));
+        /** @var Gameusers[] $kickedUsers */
+        $kickedUsers = $this->getGameusers()->joinWith('user')->where(['<', 'last_activity', $timeOut])->all();
+        if (!empty($kickedUsers)) {
+            $newJudge = false;
+            foreach ($kickedUsers as $gameUser) {
+                if ($gameUser->user->is_judge == 1) {
+                    $newJudge = true;
+                    /** @var Gamecards $blackCard */
+                    $blackCard = $this->getGamecards()->joinWith('card')->where(['is_black' => 1])->andWhere(['user_id', $gameUser->user_id])->one();
+                    $blackCard->user_id = NULL;
+                    $blackCard->save();
+                }
+                Gamecards::deleteAll(['user_id' => $gameUser->user_id]);
+                $gameUser->delete();
+            }
+            if ($newJudge) {
+                $this->gameusers[0]->user->is_judge = 1;
+                $this->gameusers[0]->user->save();
+                if (!empty($blackCard)) {
+                    $blackCard->user_id = $this->gameusers[0]->user->user_id;
+                    $blackCard->save();
+                }
+            }
+        }
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getGameusers()
+    {
+        return $this->hasMany(Gameusers::className(), ['game_id' => 'game_id']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getGamecards()
+    {
+        return $this->hasMany(Gamecards::className(), ['game_id' => 'game_id']);
     }
 }

@@ -41,6 +41,21 @@ class LobbyController extends Controller
         }
     }
 
+    /**
+     * The standard form for an error response
+     *
+     * @param array $error
+     * @return array
+     */
+    private function errorResponse($error = [])
+    {
+        return [
+            'success' => false,
+            'errors' => $error
+        ];
+
+    }
+
     public function actionGetLobbies()
     {
         $games = Game::find()->select(['cah_game.*', 'user_count' => 'COUNT(user_id)'])->addSelect(new Expression("10 as max_players"))->leftJoin('cah_gameusers', 'cah_game.game_id = cah_gameusers.game_id')->groupBy('cah_game.game_id')->asArray()->all();
@@ -86,6 +101,21 @@ class LobbyController extends Controller
         }
     }
 
+    private function checkClientToken($clientToken)
+    {
+        if (empty($clientToken)) {
+            return ['success' => false, 'error' => "ClientToken not set."];
+        }
+
+        /** @var User $user */
+        $user = User::find()->where(['generated_id' => $clientToken])->one();
+        if (empty($user)) {
+            return ['success' => false, 'error' => "Invalid Token"];
+        }
+
+        return ['success' => true, 'user' => $user];
+    }
+
     public function actionJoinLobby()
     {
         $clientToken = \Yii::$app->request->get('clientToken');
@@ -113,6 +143,7 @@ class LobbyController extends Controller
         if (count($game->gameusers) >= Game::MAX_PLAYERS) {
             return $this->errorResponse(["Max. Player count reached."]);
         }
+        $user->is_judge = 0;
         $user->updateActivity();
         $game->updateActivity();
         $game->link('users', $user);
@@ -120,6 +151,20 @@ class LobbyController extends Controller
         return [
             'success' => true
         ];
+    }
+
+    public function actionClean()
+    {
+        $lobbyId = \Yii::$app->request->get('lobbyId');
+
+        if (!empty($lobbyId)) {
+            Game::deleteAll(['game_id' => $lobbyId]);
+        } else {
+            Game::deleteAll();
+        }
+        $oldDate = date("Y-m-d H:i:s", strtotime('-1 Week'));
+        User::deleteAll(['<=', 'last_activity', $oldDate]);
+        return ['success' => true];
     }
 
     public function actionUsers()
@@ -212,35 +257,5 @@ class LobbyController extends Controller
         $lobby->updateActivity();
         $lobby->start();
         return ['success' => true];
-    }
-
-    private function checkClientToken($clientToken)
-    {
-        if (empty($clientToken)) {
-            return ['success' => false, 'error' => "ClientToken not set."];
-        }
-
-        /** @var User $user */
-        $user = User::find()->where(['generated_id' => $clientToken])->one();
-        if (empty($user)) {
-            return ['success' => false, 'error' => "Invalid Token"];
-        }
-
-        return ['success' => true, 'user' => $user];
-    }
-
-    /**
-     * The standard form for an error response
-     *
-     * @param array $error
-     * @return array
-     */
-    private function errorResponse($error = [])
-    {
-        return [
-            'success' => false,
-            'errors' => $error
-        ];
-
     }
 }
