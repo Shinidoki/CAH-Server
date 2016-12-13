@@ -21,6 +21,17 @@ class GameController extends Controller
         return parent::beforeAction($action);
     }
 
+    /**
+     * Lets the player select a card to play
+     * TODO: We still need a function for picking the winning card. Maybe also in this function?!
+     *
+     * Request params:
+     * -clientToken
+     * -lobbyId
+     * -cardId (the id of the card that should be played)
+     *
+     * @return array
+     */
     public function actionPlayCard()
     {
         $check = $this->checkRequest();
@@ -33,6 +44,10 @@ class GameController extends Controller
         /** @var User $user */
         $user = $check['user'];
 
+        if ($user->is_judge == 1) {
+            return $this->errorResponse(['You cannot play cards as judge!']);
+        }
+
         /** @var Gamecards $playedCard */
         $playedCard = Gamecards::find()->where(['game_id' => $lobby->game_id, 'card_id' => \Yii::$app->request->get('cardId'), 'user_id' => $user->user_id])->one();
 
@@ -44,17 +59,25 @@ class GameController extends Controller
         $chosenCards = $user->getCurrentChosenCards();
 
         if (count($chosenCards) >= $blackCard->blanks) {
-            return $this->errorResponse(['You cannot pick any more cards than blanks on the Black card!']);
+            return $this->errorResponse(['You cannot play any more cards than blanks on the Black card!']);
+        }
+
+        if ($playedCard->is_chosen == 1) {
+            return $this->errorResponse(["You already have chosen this card. Choose another one!"]);
         }
 
         $playedCard->is_chosen = 1;
         $playedCard->save();
-        $user->updateActivity();
         $lobby->updateActivity();
 
         return ['success'=>true];
     }
 
+    /**
+     * Checks the lobbyId and clientToken of a request
+     *
+     * @return array
+     */
     private function checkRequest()
     {
         $lobbyId = \Yii::$app->request->get('lobbyId');
@@ -83,56 +106,8 @@ class GameController extends Controller
         if ($lobby->state != Game::STATE_STARTED) {
             return $this->errorResponse(["Lobby is not started!"]);
         }
-
+        $user->updateActivity();
         return ['success' => true, 'user' => $user, 'lobby' => $lobby];
-    }
-
-    private function checkClientToken($clientToken)
-    {
-        if (empty($clientToken)) {
-            return ['success' => false, 'error' => "ClientToken not set."];
-        }
-
-        /** @var User $user */
-        $user = User::find()->where(['generated_id' => $clientToken])->one();
-        if (empty($user)) {
-            return ['success' => false, 'error' => "Invalid Token"];
-        }
-
-        return ['success' => true, 'user' => $user];
-    }
-
-    public function actionGetCurrentChosenCards()
-    {
-        $clientToken = \Yii::$app->request->get('clientToken');
-        $lobbyId = \Yii::$app->request->get('lobbyId');
-        if(empty($clientToken)){
-            return $this->errorResponse(["No clienttoken defined!"]);
-        }
-
-        /** @var User $user */
-        $user = User::find()->where(['generated_id' => $clientToken])->one();
-        if(empty($user)){
-            return $this->errorResponse(["Invalid Token"]);
-        }
-        /** @var Game $game */
-        $game = Game::find()->where(['game_id' => $lobbyId])->one();
-        if(empty($game)){
-            return $this->errorResponse(["Invalid Game"]);
-        }
-        $gameuser = Gameusers::find()->where(['game_id' => $game->game_id, 'user_id' => $user->user_id]);
-        if(empty($gameuser)){
-            return $this->errorResponse(["User not in this game"]);
-        }
-
-        if($game->getCurrentBlackCard()->blanks * count($game->getGameusers()->all()) == count($game->getGamecards()->andWhere(['is_chosen' => 1])->all())){
-            $allChosen = 1;
-        }else{
-            $allChosen = 0;
-        }
-
-        $gamecards = $game->getGamecards()->joinWith('card',false)->select(['cah_card.card_id','text'])->asArray()->andWhere(['is_black' => 0, 'is_chosen' => 1])->andWhere(['IS NOT', 'user_id', NULL])->all();
-        return ['cards'=>$gamecards,'allChosen'=>$allChosen];
     }
 
     /**
@@ -148,5 +123,77 @@ class GameController extends Controller
             'errors' => $error
         ];
 
+    }
+
+    /**
+     * Function for checking the validity of a clientToken
+     *
+     * @param $clientToken
+     * @return array
+     */
+    private function checkClientToken($clientToken)
+    {
+        if (empty($clientToken)) {
+            return ['success' => false, 'error' => "ClientToken not set."];
+        }
+
+        /** @var User $user */
+        $user = User::find()->where(['generated_id' => $clientToken])->one();
+        if (empty($user)) {
+            return ['success' => false, 'error' => "Invalid Token"];
+        }
+
+        return ['success' => true, 'user' => $user];
+    }
+
+    /**
+     * Returns the status of the chosen cards. If every user has chosen the correct amount of cards
+     * they are also returned.
+     *
+     * Request params:
+     * -clientToken
+     * -lobbyId
+     *
+     * @return array
+     */
+    public function actionGetCurrentChosenCards()
+    {
+        $check = $this->checkRequest();
+        if (!$check['success']) {
+            return $check;
+        }
+
+        /** @var Game $game */
+        $game = $check['lobby'];
+        /** @var User $user */
+        $user = $check['user'];
+
+        $gameuser = Gameusers::find()->where(['game_id' => $game->game_id, 'user_id' => $user->user_id]);
+        if(empty($gameuser)){
+            return $this->errorResponse(["User not in this game"]);
+        }
+
+        $game->timeOutUsers();
+
+        if ($game->getCurrentBlackCard()->blanks * ($game->getGameusers()->count() - 1) <= count($game->getGamecards()->andWhere(['is_chosen' => 1])->all())) {
+            $allChosen = true;
+        }else{
+            $allChosen = false;
+        }
+
+        if (!$allChosen) {
+            return ['cards' => [], 'all_chosen' => $allChosen];
+        }
+
+        /** @var Gamecards[] $gamecards */
+        $gamecards = $game->getGamecards()->joinWith('card', false)->orderBy('user_id')->andWhere(['is_black' => 0, 'is_chosen' => 1])->andWhere(['IS NOT', 'user_id', NULL])->all();
+        $sortedCards = [];
+        if (!empty($gamecards)) {
+            foreach ($gamecards as $card) {
+                $sortedCards[$card->user_id][] = ['card_id' => $card->card_id, 'text' => $card->card->text];
+            }
+            shuffle($sortedCards);
+        }
+        return ['cards' => $sortedCards, 'all_chosen' => $allChosen];
     }
 }

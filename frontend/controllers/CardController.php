@@ -11,9 +11,7 @@ namespace frontend\controllers;
 
 use backend\models\Game;
 use backend\models\Gamecards;
-use backend\models\Gameusers;
 use backend\models\User;
-use yii\helpers\VarDumper;
 use yii\web\Controller;
 use yii\web\Response;
 
@@ -28,31 +26,35 @@ class CardController extends Controller
         return parent::beforeAction($action);
     }
 
+    /**
+     * Draws the needed amount of cards to have a full hand as normal player.
+     * As judge, a black card is drawn
+     *
+     * Request params:
+     * -clientToken
+     * -lobbyId
+     *
+     * @return array
+     */
     public function actionDrawCard()
     {
-        $clientToken = \Yii::$app->request->get('clientToken');
-        $lobbyId = \Yii::$app->request->get('lobbyId');
-        if(empty($clientToken)){
-            return $this->errorResponse(["No clienttoken defined!"]);
+        $check = $this->checkRequest();
+        if (!$check['success']) {
+            return $check;
         }
 
-        /** @var User $user */
-        $user = User::find()->where(['generated_id' => $clientToken])->one();
-        if(empty($user)){
-            return $this->errorResponse(["Invalid Token"]);
-        }
         /** @var Game $game */
-        $game = Game::find()->where(['game_id' => $lobbyId])->one();
-        if(empty($game)){
-            return $this->errorResponse(["Invalid Game"]);
-        }
-        $gameuser = Gameusers::find()->where(['game_id' => $game->game_id, 'user_id' => $user->user_id]);
-        if(empty($gameuser)){
-            return $this->errorResponse(["User not in this game"]);
-        }
+        $game = $check['lobby'];
+        /** @var User $user */
+        $user = $check['user'];
+
         /** @var Gamecards[] $gamecards */
         $numberofcards = $user->getGamecards()->count();
         if ($user['is_judge'] == 1){
+            $currentBlack = $game->getCurrentBlackCard();
+            if (!empty($currentBlack)) {
+                return ['success' => true, 'cards' => [$currentBlack]];
+            }
             $gamecards = $game->getFreeCards()->andWhere(['is_black' => 1])->all();
             $cardstodraw = 1;
         }else{
@@ -61,7 +63,7 @@ class CardController extends Controller
         }
 
         if ($cardstodraw <= 0){
-            return [];
+            return ['success' => true, 'cards' => []];
         }
 
         $card = array_rand($gamecards, $cardstodraw);
@@ -70,70 +72,50 @@ class CardController extends Controller
             $usercards = [];
             foreach($card as $crd){
                 $usercards[]=$gamecards[$crd];
-                $test = \Yii::$app->db->createCommand()->update('cah_gamecards',['user_id'=>$user->user_id],['game_id'=>$game->game_id, 'card_id'=>$gamecards[$crd]->card_id])->execute();
-                VarDumper::dump($test,10,true);
+                \Yii::$app->db->createCommand()->update('cah_gamecards', ['user_id' => $user->user_id], ['game_id' => $game->game_id, 'card_id' => $gamecards[$crd]->card_id])->execute();
             }
-            return $usercards;
+            return ['success' => true, 'cards' => $usercards];
         }else{
             \Yii::$app->db->createCommand()->update('cah_gamecards',['user_id'=>$user->user_id],['game_id'=>$game->game_id, 'card_id'=>$gamecards[$card]->card_id])->execute();
-            return [$gamecards[$card]];
+            return ['success' => true, 'cards' => [$gamecards[$card]]];
         }
     }
 
-    public function actionGetCurrentCards()
+    /**
+     * Checks the lobbyId and clientToken of a request
+     *
+     * @return array
+     */
+    private function checkRequest()
     {
-        $clientToken = \Yii::$app->request->get('clientToken');
         $lobbyId = \Yii::$app->request->get('lobbyId');
-        if(empty($clientToken)){
-            return $this->errorResponse(["No clienttoken defined!"]);
+        $clientToken = \Yii::$app->request->get('clientToken');
+
+        if (empty($lobbyId)) {
+            return $this->errorResponse(["LobbyId not set."]);
+        }
+
+        $tokenCheck = $this->checkClientToken($clientToken);
+
+        if (!$tokenCheck['success']) {
+            return $this->errorResponse([$tokenCheck['error']]);
         }
 
         /** @var User $user */
-        $user = User::find()->where(['generated_id' => $clientToken])->one();
-        if(empty($user)){
-            return $this->errorResponse(["Invalid Token"]);
-        }
-        /** @var Game $game */
-        $game = Game::find()->where(['game_id' => $lobbyId])->one();
-        if(empty($game)){
-            return $this->errorResponse(["Invalid Game"]);
-        }
-        $gameuser = Gameusers::find()->where(['game_id' => $game->game_id, 'user_id' => $user->user_id]);
-        if(empty($gameuser)){
-            return $this->errorResponse(["User not in this game"]);
+        $user = $tokenCheck['user'];
+
+        /** @var Game $lobby */
+        $lobby = Game::find()->joinWith('gameusers')->where(['cah_game.game_id' => $lobbyId, 'cah_gameusers.user_id' => $user->user_id])->one();
+
+        if (empty($lobby)) {
+            return $this->errorResponse(["No Lobby with this ID found or you are not a member of this lobby"]);
         }
 
-        $gamecards = $game->getGamecards()->joinWith('card',false)->select(['cah_card.card_id','text','blanks'])->asArray()->andWhere(['is_black' => $user['is_judge'], 'user_id' => $user->user_id])->all();
-
-        return $gamecards;
-    }
-
-    public function actionGetCurrentBlackCard()
-    {
-        $clientToken = \Yii::$app->request->get('clientToken');
-        $lobbyId = \Yii::$app->request->get('lobbyId');
-        if(empty($clientToken)){
-            return $this->errorResponse(["No clienttoken defined!"]);
+        if ($lobby->state != Game::STATE_STARTED) {
+            return $this->errorResponse(["Lobby is not started!"]);
         }
-
-        /** @var User $user */
-        $user = User::find()->where(['generated_id' => $clientToken])->one();
-        if(empty($user)){
-            return $this->errorResponse(["Invalid Token"]);
-        }
-        /** @var Game $game */
-        $game = Game::find()->where(['game_id' => $lobbyId])->one();
-        if(empty($game)){
-            return $this->errorResponse(["Invalid Game"]);
-        }
-        $gameuser = Gameusers::find()->where(['game_id' => $game->game_id, 'user_id' => $user->user_id]);
-        if(empty($gameuser)){
-            return $this->errorResponse(["User not in this game"]);
-        }
-
-        $gamecard = $game->getGamecards()->joinWith('card',false)->select(['cah_card.card_id','text','blanks'])->asArray()->andWhere(['is_black' => 1])->andWhere(['IS NOT', 'user_id', NULL])->one();
-
-        return $gamecard;
+        $user->updateActivity();
+        return ['success' => true, 'user' => $user, 'lobby' => $lobby];
     }
 
     /**
@@ -148,5 +130,76 @@ class CardController extends Controller
             'success' => false,
             'errors' => $error
         ];
+    }
+
+    /**
+     * Function for checking the validity of a clientToken
+     *
+     * @param $clientToken
+     * @return array
+     */
+    private function checkClientToken($clientToken)
+    {
+        if (empty($clientToken)) {
+            return ['success' => false, 'error' => "ClientToken not set."];
+        }
+
+        /** @var User $user */
+        $user = User::find()->where(['generated_id' => $clientToken])->one();
+        if (empty($user)) {
+            return ['success' => false, 'error' => "Invalid Token"];
+        }
+
+        return ['success' => true, 'user' => $user];
+    }
+
+    /**
+     * Gets the current cards in hand of a player
+     *
+     * Request params:
+     * -clientToken
+     * -lobbyId
+     *
+     * @return array
+     */
+    public function actionGetCurrentCards()
+    {
+        $check = $this->checkRequest();
+        if (!$check['success']) {
+            return $check;
+        }
+
+        /** @var Game $game */
+        $game = $check['lobby'];
+        /** @var User $user */
+        $user = $check['user'];
+
+        $gamecards = $game->getGamecards()->joinWith('card', false)->select(['cah_card.card_id', 'text', 'is_black', 'blanks'])->asArray()->andWhere(['is_black' => $user['is_judge'], 'user_id' => $user->user_id])->all();
+
+        return ['success' => true, 'cards' => $gamecards];
+    }
+
+    /**
+     * Returns the current black-card of the round
+     *
+     * Request params:
+     * -clientToken
+     * -lobbyId
+     *
+     * @return array
+     */
+    public function actionGetCurrentBlackcard()
+    {
+        $check = $this->checkRequest();
+        if (!$check['success']) {
+            return $check;
+        }
+
+        /** @var Game $game */
+        $game = $check['lobby'];
+
+        $gamecard = $game->getGamecards()->joinWith('card', false)->select(['cah_card.card_id', 'text', 'is_black', 'blanks'])->asArray()->andWhere(['is_black' => 1])->andWhere(['IS NOT', 'user_id', NULL])->one();
+
+        return ['success' => true, 'card' => $gamecard];
     }
 }

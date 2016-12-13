@@ -21,6 +21,14 @@ class LobbyController extends Controller
         return parent::beforeAction($action);
     }
 
+    /**
+     * Registers the user in the database and returns him his clientToken
+     *
+     * Request Params:
+     * -name
+     *
+     * @return array
+     */
     public function actionAuthenticate()
     {
         $userName = \Yii::$app->request->get('name');
@@ -56,6 +64,11 @@ class LobbyController extends Controller
 
     }
 
+    /**
+     * Returns all games with the player count
+     *
+     * @return array
+     */
     public function actionGetLobbies()
     {
         $games = Game::find()->select(['cah_game.*', 'user_count' => 'COUNT(user_id)'])->addSelect(new Expression("10 as max_players"))->leftJoin('cah_gameusers', 'cah_game.game_id = cah_gameusers.game_id')->groupBy('cah_game.game_id')->asArray()->all();
@@ -66,6 +79,15 @@ class LobbyController extends Controller
         ];
     }
 
+    /**
+     * Lets the user create a new lobby/game
+     *
+     * Request Params:
+     * -clientToken
+     * -gameName (optional)
+     *
+     * @return array
+     */
     public function actionCreateLobby()
     {
         $clientToken = \Yii::$app->request->get('clientToken');
@@ -101,6 +123,12 @@ class LobbyController extends Controller
         }
     }
 
+    /**
+     * Checks if the clientToken is registered on the server and returns the user
+     *
+     * @param $clientToken
+     * @return array
+     */
     private function checkClientToken($clientToken)
     {
         if (empty($clientToken)) {
@@ -116,6 +144,15 @@ class LobbyController extends Controller
         return ['success' => true, 'user' => $user];
     }
 
+    /**
+     * Lets a user join an open lobby
+     *
+     * Request params:
+     * -clientToken
+     * -lobbyId
+     *
+     * @return array
+     */
     public function actionJoinLobby()
     {
         $clientToken = \Yii::$app->request->get('clientToken');
@@ -153,6 +190,14 @@ class LobbyController extends Controller
         ];
     }
 
+    /**
+     * TODO: Remove function after testing.
+     * ONLY FOR TEST PURPOSES
+     * Deletes a specified game or all games
+     * Also deletes all Users that had no activity for 1 week
+     *
+     * @return array
+     */
     public function actionClean()
     {
         $lobbyId = \Yii::$app->request->get('lobbyId');
@@ -167,11 +212,26 @@ class LobbyController extends Controller
         return ['success' => true];
     }
 
+    /**
+     * TODO: Remove function after testing.
+     * ONLY FOR TEST PURPOSES
+     * Returns all available users with clientTokens
+     *
+     * @return array|\yii\db\ActiveRecord[]
+     */
     public function actionUsers()
     {
         return User::find()->all();
     }
 
+    /**
+     * Returns the current state of a lobby
+     *
+     * Request params:
+     * -lobbyId
+     *
+     * @return array
+     */
     public function actionGetLobbyState()
     {
         $lobbyId = \Yii::$app->request->get('lobbyId');
@@ -192,6 +252,17 @@ class LobbyController extends Controller
         ];
     }
 
+    /**
+     * A host can kick another player with this function
+     * TODO: Alter function, so users can use this function to leave a lobby by themselves
+     *
+     * Request params:
+     * -lobbyId
+     * -clientToken
+     * -removePlayer (player ID of the user that should be kicked)
+     *
+     * @return array
+     */
     public function actionRemoveFromLobby()
     {
         $lobbyId = \Yii::$app->request->get('lobbyId');
@@ -225,6 +296,15 @@ class LobbyController extends Controller
         return ['success' => true];
     }
 
+    /**
+     * Lets the host start a game
+     *
+     * Request params:
+     * -lobbyId
+     * -clientToken
+     *
+     * @return array
+     */
     public function actionStartGame()
     {
         $lobbyId = \Yii::$app->request->get('lobbyId');
