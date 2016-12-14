@@ -116,7 +116,7 @@ class LobbyController extends Controller
             $user->updateActivity();
             return [
                 'success' => true,
-                'lobbyId' => $newGame->game_id
+                'game_id' => $newGame->game_id
             ];
         } else {
             return $this->errorResponse($newGame->errors);
