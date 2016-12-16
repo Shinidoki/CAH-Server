@@ -88,11 +88,11 @@ class CardController extends Controller
      */
     private function checkRequest()
     {
-        $lobbyId = \Yii::$app->request->get('lobbyId');
+        $lobbyId = \Yii::$app->request->get('gameId');
         $clientToken = \Yii::$app->request->get('clientToken');
 
         if (empty($lobbyId)) {
-            return $this->errorResponse(["LobbyId not set."]);
+            return $this->errorResponse(["GameID not set."]);
         }
 
         $tokenCheck = $this->checkClientToken($clientToken);
