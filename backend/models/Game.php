@@ -28,8 +28,8 @@ class Game extends \yii\db\ActiveRecord
 {
     const STATE_INLOBBY = 0;
     const STATE_STARTED = 1;
-    const STATE_FINISHED = 2;
-    const STATE_PAUSED = 3;
+    const STATE_END_OF_ROUND = 2;
+    const STATE_FINISHED = 3;
     const MAX_PLAYERS = 10;
     const MAX_CARDS = 10;
 

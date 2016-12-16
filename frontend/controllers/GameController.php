@@ -7,6 +7,7 @@ use backend\models\Game;
 use backend\models\Gamecards;
 use backend\models\Gameusers;
 use backend\models\User;
+use yii\db\Expression;
 use yii\web\Controller;
 use yii\web\Response;
 
@@ -146,6 +147,117 @@ class GameController extends Controller
         return ['success' => true, 'user' => $user];
     }
 
+    public function actionChooseWinner()
+    {
+        $check = $this->checkRequest();
+        if (!$check['success']) {
+            return $check;
+        }
+
+        /** @var Game $lobby */
+        $lobby = $check['lobby'];
+        /** @var User $user */
+        $user = $check['user'];
+
+        if ($user->is_judge != 1) {
+            return $this->errorResponse(['You are not the judge!']);
+        }
+
+        /** @var Gamecards $chosenCard */
+        $chosenCard = Gamecards::find()->where(['game_id' => $lobby->game_id, 'card_id' => \Yii::$app->request->get('cardId'), 'is_chosen' => 1])->one();
+
+        if (empty($chosenCard)) {
+            return $this->errorResponse(['Invalid card id. This is not a chosen card']);
+        }
+
+        $chosenCard->user->score++;
+        $chosenCard->user->updateActivity();
+        Gamecards::deleteAll(new Expression("game_id = {$lobby->game_id} AND is_chosen = 1 AND card_id <> {$chosenCard->card_id}"));
+        $lobby->state = Game::STATE_END_OF_ROUND;
+        $lobby->updateActivity();
+        return ['success' => true];
+    }
+
+    public function actionNextRound()
+    {
+        $check = $this->checkRequest();
+        if (!$check['success']) {
+            return $check;
+        }
+
+        /** @var Game $lobby */
+        $lobby = $check['lobby'];
+        /** @var User $user */
+        $user = $check['user'];
+
+        if ($user->is_judge != 1) {
+            return $this->errorResponse(['You are not the judge!']);
+        }
+
+        $allUsers = $lobby->users;
+
+        $nextJudge = NULL;
+        $foundJudge = false;
+        $gameEnded = false;
+        $winner = NULL;
+
+        foreach ($allUsers as $player) {
+            if ($player->score >= $lobby->target_score) {
+                $gameEnded = true;
+                $winner = $player;
+            }
+            if ($player->is_judge) {
+                $foundJudge = true;
+                $player->is_judge = 0;
+            } elseif (empty($nextJudge) && $foundJudge) {
+                $nextJudge = $player;
+                $nextJudge->is_judge = 1;
+            }
+            $player->updateActivity();
+        }
+
+        if (empty($nextJudge) && !empty($allUsers[0])) {
+            $nextJudge = $allUsers[0];
+            $nextJudge->is_judge = 1;
+            $nextJudge->updateActivity();
+        }
+
+        if ($gameEnded) {
+            $lobby->state = Game::STATE_FINISHED;
+            Gamecards::deleteAll(['game_id' => $lobby->game_id]);
+            Gameusers::deleteAll(['game_id' => $lobby->game_id]);
+        } else {
+            $lobby->state = Game::STATE_STARTED;
+        }
+
+        $lobby->updateActivity();
+        return ['success' => true, 'state' => $lobby->state, 'winner' => empty($winner) ? NULL : $winner->user_id];
+    }
+
+    public function actionCheckWinner()
+    {
+        $check = $this->checkRequest();
+        if (!$check['success']) {
+            return $check;
+        }
+
+        /** @var Game $lobby */
+        $lobby = $check['lobby'];
+        /** @var User $user */
+        $user = $check['user'];
+        $user->updateActivity();
+        if ($lobby->state != Game::STATE_END_OF_ROUND) {
+            return $this->errorResponse(['Game is not in "END OF ROUND"-State']);
+        }
+
+        /** @var Gamecards $winnerCard */
+        $winnerCard = $lobby->getGamecards()->where(['is_chosen' => 1])->one();
+        if (!empty($winnerCard)) {
+            return ['success' => true, 'winner' => $winnerCard->user_id, 'winningCard' => $winnerCard->card_id];
+        }
+        return $this->errorResponse(['Could not determine winnercard!']);
+    }
+
     /**
      * Returns the status of the chosen cards. If every user has chosen the correct amount of cards
      * they are also returned.
@@ -194,6 +306,6 @@ class GameController extends Controller
             }
             shuffle($sortedCards);
         }
-        return ['cards' => $sortedCards, 'all_chosen' => $allChosen];
+        return ['success' => true, 'cards' => $sortedCards, 'all_chosen' => $allChosen];
     }
 }
