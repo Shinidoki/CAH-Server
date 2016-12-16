@@ -156,10 +156,10 @@ class LobbyController extends Controller
     public function actionJoinLobby()
     {
         $clientToken = \Yii::$app->request->get('clientToken');
-        $lobbyId = \Yii::$app->request->get('lobbyId');
+        $lobbyId = \Yii::$app->request->get('gameId');
 
         if (empty($lobbyId)) {
-            return $this->errorResponse(["LobbyId not set."]);
+            return $this->errorResponse(["GameId not set."]);
         }
 
         $tokenCheck = $this->checkClientToken($clientToken);
@@ -200,7 +200,7 @@ class LobbyController extends Controller
      */
     public function actionClean()
     {
-        $lobbyId = \Yii::$app->request->get('lobbyId');
+        $lobbyId = \Yii::$app->request->get('gameId');
 
         if (!empty($lobbyId)) {
             Game::deleteAll(['game_id' => $lobbyId]);
@@ -234,7 +234,7 @@ class LobbyController extends Controller
      */
     public function actionGetLobbyState()
     {
-        $lobbyId = \Yii::$app->request->get('lobbyId');
+        $lobbyId = \Yii::$app->request->get('gameId');
 
         /** @var Game $game */
         $game = Game::find()->with('categories')->where(['game_id' => $lobbyId])->one();
@@ -265,12 +265,12 @@ class LobbyController extends Controller
      */
     public function actionRemoveFromLobby()
     {
-        $lobbyId = \Yii::$app->request->get('lobbyId');
+        $lobbyId = \Yii::$app->request->get('gameId');
         $clientToken = \Yii::$app->request->get('clientToken');
         $kickedUser = \Yii::$app->request->get('removePlayer');
 
         if (empty($lobbyId)) {
-            return $this->errorResponse(["LobbyId not set."]);
+            return $this->errorResponse(["GameId not set."]);
         }
         if (empty($kickedUser)) {
             return $this->errorResponse(["Remove Player ID not set."]);
@@ -307,11 +307,11 @@ class LobbyController extends Controller
      */
     public function actionStartGame()
     {
-        $lobbyId = \Yii::$app->request->get('lobbyId');
+        $lobbyId = \Yii::$app->request->get('gameId');
         $clientToken = \Yii::$app->request->get('clientToken');
 
         if (empty($lobbyId)) {
-            return $this->errorResponse(["LobbyId not set."]);
+            return $this->errorResponse(["GameId not set."]);
         }
 
         $tokenCheck = $this->checkClientToken($clientToken);
@@ -327,7 +327,7 @@ class LobbyController extends Controller
         $lobby = Game::find()->where(['game_id' => $lobbyId, 'host_user_id' => $host->user_id])->one();
 
         if (empty($lobby)) {
-            return $this->errorResponse(["No Lobby with this ID found or you are not the host"]);
+            return $this->errorResponse(["No game with this ID found or you are not the host"]);
         }
 
         if ($lobby->state != Game::STATE_INLOBBY) {
