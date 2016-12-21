@@ -32,7 +32,7 @@ class CardController extends Controller
      *
      * Request params:
      * -clientToken
-     * -lobbyId
+     * -gameId
      *
      * @return array
      */
@@ -82,7 +82,7 @@ class CardController extends Controller
     }
 
     /**
-     * Checks the lobbyId and clientToken of a request
+     * Checks the gameId and clientToken of a request
      *
      * @return array
      */
@@ -158,7 +158,7 @@ class CardController extends Controller
      *
      * Request params:
      * -clientToken
-     * -lobbyId
+     * -gameId
      *
      * @return array
      */
@@ -184,7 +184,7 @@ class CardController extends Controller
      *
      * Request params:
      * -clientToken
-     * -lobbyId
+     * -gameId
      *
      * @return array
      */

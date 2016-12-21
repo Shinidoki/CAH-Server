@@ -149,7 +149,7 @@ class LobbyController extends Controller
      *
      * Request params:
      * -clientToken
-     * -lobbyId
+     * -gameId
      *
      * @return array
      */
@@ -228,7 +228,7 @@ class LobbyController extends Controller
      * Returns the current state of a lobby
      *
      * Request params:
-     * -lobbyId
+     * -gameId
      *
      * @return array
      */
@@ -257,7 +257,7 @@ class LobbyController extends Controller
      * TODO: Alter function, so users can use this function to leave a lobby by themselves
      *
      * Request params:
-     * -lobbyId
+     * -gameId
      * -clientToken
      * -removePlayer (player ID of the user that should be kicked)
      *
@@ -300,7 +300,7 @@ class LobbyController extends Controller
      * Lets the host start a game
      *
      * Request params:
-     * -lobbyId
+     * -gameId
      * -clientToken
      *
      * @return array

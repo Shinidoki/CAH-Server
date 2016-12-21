@@ -28,7 +28,7 @@ class GameController extends Controller
      *
      * Request params:
      * -clientToken
-     * -lobbyId
+     * -gameId
      * -cardId (the id of the card that should be played)
      *
      * @return array
@@ -75,17 +75,17 @@ class GameController extends Controller
     }
 
     /**
-     * Checks the lobbyId and clientToken of a request
+     * Checks the gameId and clientToken of a request
      *
      * @return array
      */
     private function checkRequest()
     {
-        $lobbyId = \Yii::$app->request->get('lobbyId');
+        $lobbyId = \Yii::$app->request->get('gameId');
         $clientToken = \Yii::$app->request->get('clientToken');
 
         if (empty($lobbyId)) {
-            return $this->errorResponse(["LobbyId not set."]);
+            return $this->errorResponse(["gameId not set."]);
         }
 
         $tokenCheck = $this->checkClientToken($clientToken);
@@ -264,7 +264,7 @@ class GameController extends Controller
      *
      * Request params:
      * -clientToken
-     * -lobbyId
+     * -gameId
      *
      * @return array
      */
