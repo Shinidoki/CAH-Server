@@ -1,51 +1,60 @@
 <?php
 
 /* @var $this yii\web\View */
-
-$this->title = 'My Yii Application';
+\rmrevin\yii\fontawesome\AssetBundle::register($this);
+$this->title = 'Carson Against Humanity';
 ?>
 <div class="site-index">
 
     <div class="jumbotron">
-        <h1>Congratulations!</h1>
+        <h1>Carson Against Humanity!</h1>
 
-        <p class="lead">You have successfully created your Yii-powered application.</p>
+        <p class="lead">This is a <a href="https://www.cardsagainsthumanity.com/">Cards Against Humanity</a> project.
+        </p>
 
-        <p><a class="btn btn-lg btn-success" href="http://www.yiiframework.com">Get started with Yii</a></p>
+        <p>
+            We are developing an online interface as a school project. <br>
+            Our goal is to make a simple application which lets you play Cards Against Humanity with other people online
+            via this interface.
+        </p>
     </div>
 
     <div class="body-content">
 
         <div class="row">
             <div class="col-lg-4">
-                <h2>Heading</h2>
+                <h2>Documentation</h2>
 
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et
-                    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                    ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                    fugiat nulla pariatur.</p>
+                <p>Interface Documentation (commentaries are just in german for now)</p>
 
-                <p><a class="btn btn-default" href="http://www.yiiframework.com/doc/">Yii Documentation &raquo;</a></p>
+                <p><a class="btn btn-default" target="_blank"
+                      href="https://drive.google.com/file/d/0B7TxIzdpex_vRXJNeTFCVVVfNU0/view?usp=drive_web"><?= \rmrevin\yii\fontawesome\FA::icon('file-pdf-o') ?>
+                        Documentation as PDF</a></p>
             </div>
             <div class="col-lg-4">
-                <h2>Heading</h2>
+                <h2>Sourcecode</h2>
 
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et
-                    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                    ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                    fugiat nulla pariatur.</p>
-
-                <p><a class="btn btn-default" href="http://www.yiiframework.com/forum/">Yii Forum &raquo;</a></p>
+                <p><a class="btn btn-default" target="_blank"
+                      href="https://github.com/Shinidoki/CAH-Server"><?= \rmrevin\yii\fontawesome\FA::icon('github') ?>
+                        Server/Interface</a></p>
+                <p><a class="btn btn-default" target="_blank"
+                      href="https://github.com/MartinSchmieschek/CAH-Client"><?= \rmrevin\yii\fontawesome\FA::icon('github') ?>
+                        Unity Client</a></p>
             </div>
             <div class="col-lg-4">
-                <h2>Heading</h2>
+                <h2>Github - Server/Interface</h2>
+                <?php
+                \yii\widgets\Pjax::begin(['timeout' => 10000]);
+                echo \common\component\RssFeed::widget([
+                    'channel' => 'https://github.com/Shinidoki/CAH-Server/commits/master.atom',
+                    'pageSize' => 5,
+                    'itemView' => '@frontend/views/site/_rss_item', //To set own viewFile set 'itemView'=>'@frontend/views/site/_rss_item'. Use $model var to access item properties
+                    'wrapTag' => 'div',
+                    'wrapClass' => 'rss-wrap',
+                ]);
+                \yii\widgets\Pjax::end();
+                ?>
 
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et
-                    dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
-                    ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-                    fugiat nulla pariatur.</p>
-
-                <p><a class="btn btn-default" href="http://www.yiiframework.com/extensions/">Yii Extensions &raquo;</a></p>
             </div>
         </div>
 
