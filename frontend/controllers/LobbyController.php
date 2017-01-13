@@ -110,7 +110,7 @@ class LobbyController extends Controller
         if ($newGame->updateActivity()) {
             $newGame->link('hostUser', $user);
             $newGame->link('categories', Category::find()->one());
-            Gameusers::deleteAll(['user_id' => $user->user_id]);
+            $user->removeFromAllGames();
             $user->link('games',$newGame);
             $user->is_judge = 1;
             $user->updateActivity();
@@ -180,6 +180,15 @@ class LobbyController extends Controller
         if (count($game->gameusers) >= Game::MAX_PLAYERS) {
             return $this->errorResponse(["Max. Player count reached."]);
         }
+
+        $alreadyInGame = Gameusers::find()->where(['game_id' => $lobbyId, 'user_id' => $user->user_id])->one();
+
+        if (!empty($alreadyInGame)) {
+            return $this->errorResponse(["You are already in this game!"]);
+        }
+
+        $user->removeFromAllGames();
+
         $user->is_judge = 0;
         $user->updateActivity();
         $game->updateActivity();

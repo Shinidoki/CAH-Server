@@ -27,6 +27,12 @@ class User extends \yii\db\ActiveRecord
         return '{{%user}}';
     }
 
+    public static function isValidToken($token)
+    {
+        $found = self::find()->where(['generated_id' => $token])->one();
+        return !empty($found);
+    }
+
     public function beforeValidate()
     {
         if(empty($this->generated_id)){
@@ -66,11 +72,15 @@ class User extends \yii\db\ActiveRecord
     }
 
     /**
-     * @return \yii\db\ActiveQuery
+     * Removes the user from all games he is in
      */
-    public function getGamecards()
+    public function removeFromAllGames()
     {
-        return $this->hasMany(Gamecards::className(), ['user_id' => 'user_id']);
+        /** @var Gameusers[] $gameUsers */
+        $gameUsers = $this->getGameusers()->with('game')->all();
+        foreach ($gameUsers as $gameUser) {
+            $gameUser->game->kickUser($gameUser);
+        }
     }
 
     /**
@@ -103,17 +113,19 @@ class User extends \yii\db\ActiveRecord
         return $this->save();
     }
 
-    public static function isValidToken($token)
-    {
-        $found = self::find()->where(['generated_id' => $token])->one();
-        return !empty($found);
-    }
-
     /**
      * @return Gamecards[]
      */
     public function getCurrentChosenCards()
     {
         return $this->getGamecards()->where(['is_chosen' => 1])->all();
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
+    public function getGamecards()
+    {
+        return $this->hasMany(Gamecards::className(), ['user_id' => 'user_id']);
     }
 }

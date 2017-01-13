@@ -118,12 +118,19 @@ class Game extends \yii\db\ActiveRecord
         return $this->hasMany(User::className(), ['user_id' => 'user_id'])->viaTable('{{%gameusers}}', ['game_id' => 'game_id']);
     }
 
+    /**
+     * Update the activity timestamp
+     * @return bool
+     */
     public function updateActivity()
     {
         $this->last_activity = date('Y-m-d H:i:s');
         return $this->save();
     }
 
+    /**
+     * Starts the game.
+     */
     public function start()
     {
         $this->state = self::STATE_STARTED;
@@ -181,31 +188,17 @@ class Game extends \yii\db\ActiveRecord
         return $this->hasMany(Card::className(), ['card_id' => 'card_id'])->viaTable('{{%gamecards}}', ['game_id' => 'game_id']);
     }
 
+    /**
+     * Kicks all players that haven't reacted for a specified time
+     */
     public function timeOutUsers()
     {
         $timeOut = date('Y-m-d H:i:s', strtotime("-{$this->kicktimer} seconds"));
         /** @var Gameusers[] $kickedUsers */
         $kickedUsers = $this->getGameusers()->joinWith('user')->where(['<', 'last_activity', $timeOut])->all();
         if (!empty($kickedUsers)) {
-            $newJudge = false;
             foreach ($kickedUsers as $gameUser) {
-                if ($gameUser->user->is_judge == 1) {
-                    $newJudge = true;
-                    /** @var Gamecards $blackCard */
-                    $blackCard = $this->getGamecards()->joinWith('card')->where(['is_black' => 1])->andWhere(['user_id', $gameUser->user_id])->one();
-                    $blackCard->user_id = NULL;
-                    $blackCard->save();
-                }
-                Gamecards::deleteAll(['user_id' => $gameUser->user_id]);
-                $gameUser->delete();
-            }
-            if ($newJudge) {
-                $this->gameusers[0]->user->is_judge = 1;
-                $this->gameusers[0]->user->save();
-                if (!empty($blackCard)) {
-                    $blackCard->user_id = $this->gameusers[0]->user->user_id;
-                    $blackCard->save();
-                }
+                $this->kickUser($gameUser);
             }
         }
     }
@@ -219,10 +212,53 @@ class Game extends \yii\db\ActiveRecord
     }
 
     /**
+     * Kicks a User from the game and determines a new judge if this player was the judge
+     *
+     * @param Gameusers $gameUser
+     */
+    public function kickUser($gameUser)
+    {
+        $newJudge = false;
+        if ($gameUser->user->is_judge == 1) {
+            $newJudge = true;
+            /** @var Gamecards $blackCard */
+            $blackCard = $this->getGamecards()->joinWith('card')->where(['is_black' => 1, 'user_id' => $gameUser->user_id])->one();
+            if (!empty($blackCard)) {
+                $blackCard->user_id = NULL;
+                $blackCard->save();
+            }
+        }
+        Gamecards::deleteAll(['user_id' => $gameUser->user_id]);
+
+        $gameUser->delete();
+        if ($newJudge) {
+            $this->selectNewJudge();
+        }
+    }
+
+    /**
      * @return \yii\db\ActiveQuery
      */
     public function getGamecards()
     {
         return $this->hasMany(Gamecards::className(), ['game_id' => 'game_id']);
+    }
+
+    /**
+     * Selects a new judge
+     * TODO: Right now it's always the first player that gets returned from the query. Needs to select the next player instead
+     */
+    public function selectNewJudge()
+    {
+        if (empty($this->gameusers)) {
+            $this->delete();
+            return;
+        }
+        $this->gameusers[0]->user->is_judge = 1;
+        $this->gameusers[0]->user->save();
+        if (!empty($blackCard)) {
+            $blackCard->user_id = $this->gameusers[0]->user->user_id;
+            $blackCard->save();
+        }
     }
 }
