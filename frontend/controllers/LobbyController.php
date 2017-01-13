@@ -27,18 +27,17 @@ class LobbyController extends Controller
      * Request Params:
      * -name
      *
+     * @param string $name
      * @return array
      */
-    public function actionAuthenticate()
+    public function actionAuthenticate($name = null)
     {
-        $userName = \Yii::$app->request->get('name');
-
-        if(empty($userName)){
+        if (empty($name)) {
             return $this->errorResponse(["No Username defined!"]);
         }
 
         $newUser = new User();
-        $newUser->user_name = $userName;
+        $newUser->user_name = $name;
         if ($newUser->updateActivity()) {
             return [
                 'success' => true,
@@ -86,13 +85,12 @@ class LobbyController extends Controller
      * -clientToken
      * -gameName (optional)
      *
+     * @param $clientToken
+     * @param $gameName
      * @return array
      */
-    public function actionCreateLobby()
+    public function actionCreateLobby($clientToken = null, $gameName = null)
     {
-        $clientToken = \Yii::$app->request->get('clientToken');
-        $gameName = \Yii::$app->request->get('gameName');
-
         $tokenCheck = $this->checkClientToken($clientToken);
 
         if (!$tokenCheck['success']) {
@@ -151,14 +149,13 @@ class LobbyController extends Controller
      * -clientToken
      * -gameId
      *
+     * @param $clientToken
+     * @param $gameId
      * @return array
      */
-    public function actionJoinLobby()
+    public function actionJoinLobby($clientToken = null, $gameId = null)
     {
-        $clientToken = \Yii::$app->request->get('clientToken');
-        $lobbyId = \Yii::$app->request->get('gameId');
-
-        if (empty($lobbyId)) {
+        if (empty($gameId)) {
             return $this->errorResponse(["GameId not set."]);
         }
 
@@ -172,7 +169,7 @@ class LobbyController extends Controller
         $user = $tokenCheck['user'];
 
         /** @var Game $game */
-        $game = Game::find()->where(['game_id' => $lobbyId])->one();
+        $game = Game::find()->where(['game_id' => $gameId])->one();
         if (empty($game)) {
             return $this->errorResponse(["There is no Game with this ID"]);
         }
@@ -181,7 +178,7 @@ class LobbyController extends Controller
             return $this->errorResponse(["Max. Player count reached."]);
         }
 
-        $alreadyInGame = Gameusers::find()->where(['game_id' => $lobbyId, 'user_id' => $user->user_id])->one();
+        $alreadyInGame = Gameusers::find()->where(['game_id' => $gameId, 'user_id' => $user->user_id])->one();
 
         if (!empty($alreadyInGame)) {
             return $this->errorResponse(["You are already in this game!"]);
@@ -209,7 +206,7 @@ class LobbyController extends Controller
      */
     public function actionClean()
     {
-        $lobbyId = \Yii::$app->request->get('gameId');
+        $gameId = \Yii::$app->request->get('gameId');
 
         if (!empty($lobbyId)) {
             Game::deleteAll(['game_id' => $lobbyId]);
@@ -239,14 +236,13 @@ class LobbyController extends Controller
      * Request params:
      * -gameId
      *
+     * @param $gameId
      * @return array
      */
-    public function actionGetLobbyState()
+    public function actionGetLobbyState($gameId = null)
     {
-        $lobbyId = \Yii::$app->request->get('gameId');
-
         /** @var Game $game */
-        $game = Game::find()->with('categories')->where(['game_id' => $lobbyId])->one();
+        $game = Game::find()->with('categories')->where(['game_id' => $gameId])->one();
 
         if(empty($game)){
             return $this->errorResponse(["Lobby not found."]);
@@ -270,18 +266,17 @@ class LobbyController extends Controller
      * -clientToken
      * -removePlayer (player ID of the user that should be kicked)
      *
+     * @param $gameId
+     * @param $clientToken
+     * @param $removePlayer
      * @return array
      */
-    public function actionRemoveFromLobby()
+    public function actionRemoveFromLobby($gameId = null, $clientToken = null, $removePlayer = null)
     {
-        $lobbyId = \Yii::$app->request->get('gameId');
-        $clientToken = \Yii::$app->request->get('clientToken');
-        $kickedUser = \Yii::$app->request->get('removePlayer');
-
-        if (empty($lobbyId)) {
+        if (empty($gameId)) {
             return $this->errorResponse(["GameId not set."]);
         }
-        if (empty($kickedUser)) {
+        if (empty($removePlayer)) {
             return $this->errorResponse(["Remove Player ID not set."]);
         }
 
@@ -294,14 +289,14 @@ class LobbyController extends Controller
         $host = $tokenCheck['user'];
 
         /** @var Game $lobby */
-        $lobby = Game::find()->where(['game_id' => $lobbyId, 'host_user_id' => $host->user_id])->one();
+        $lobby = Game::find()->where(['game_id' => $gameId, 'host_user_id' => $host->user_id])->one();
 
         if (empty($lobby)) {
             return $this->errorResponse(["User is not the host, or lobby with this ID doesn't exist!"]);
         }
         $host->updateActivity();
         $lobby->updateActivity();
-        Gameusers::deleteAll(['game_id' => $lobby->game_id, 'user_id' => $kickedUser]);
+        Gameusers::deleteAll(['game_id' => $lobby->game_id, 'user_id' => $removePlayer]);
         return ['success' => true];
     }
 
@@ -312,14 +307,13 @@ class LobbyController extends Controller
      * -gameId
      * -clientToken
      *
+     * @param null $gameId
+     * @param null $clientToken
      * @return array
      */
-    public function actionStartGame()
+    public function actionStartGame($gameId = null, $clientToken = null)
     {
-        $lobbyId = \Yii::$app->request->get('gameId');
-        $clientToken = \Yii::$app->request->get('clientToken');
-
-        if (empty($lobbyId)) {
+        if (empty($gameId)) {
             return $this->errorResponse(["GameId not set."]);
         }
 
@@ -333,7 +327,7 @@ class LobbyController extends Controller
         $host = $tokenCheck['user'];
 
         /** @var Game $lobby */
-        $lobby = Game::find()->where(['game_id' => $lobbyId, 'host_user_id' => $host->user_id])->one();
+        $lobby = Game::find()->where(['game_id' => $gameId, 'host_user_id' => $host->user_id])->one();
 
         if (empty($lobby)) {
             return $this->errorResponse(["No game with this ID found or you are not the host"]);
