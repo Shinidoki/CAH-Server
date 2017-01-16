@@ -73,6 +73,20 @@ class Game extends \yii\db\ActiveRecord
         ];
     }
 
+    public function translateState($state)
+    {
+        if ($state == self::STATE_INLOBBY) {
+            return "In Lobby";
+        } elseif ($state == self::STATE_STARTED) {
+            return "Started";
+        } elseif ($state == self::STATE_END_OF_ROUND) {
+            return "End of Round";
+        } elseif ($state == self::STATE_FINISHED) {
+            return "Finished";
+        }
+        return "Undefined State!";
+    }
+
     /**
      * @return \yii\db\ActiveQuery
      */

@@ -78,6 +78,7 @@ class User extends \yii\db\ActiveRecord
     {
         /** @var Gameusers[] $gameUsers */
         $gameUsers = $this->getGameusers()->with('game')->all();
+//        VarDumper::dump($gameUsers, 10, true);die;
         foreach ($gameUsers as $gameUser) {
             $gameUser->game->kickUser($gameUser);
         }

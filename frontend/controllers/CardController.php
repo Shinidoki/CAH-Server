@@ -34,11 +34,13 @@ class CardController extends Controller
      * -clientToken
      * -gameId
      *
+     * @param $clientToken
+     * @param $gameId
      * @return array
      */
-    public function actionDrawCard()
+    public function actionDrawCard($clientToken, $gameId)
     {
-        $check = $this->checkRequest();
+        $check = $this->checkRequest($clientToken, $gameId);
         if (!$check['success']) {
             return $check;
         }
@@ -84,13 +86,12 @@ class CardController extends Controller
     /**
      * Checks the gameId and clientToken of a request
      *
+     * @param $clientToken
+     * @param $lobbyId
      * @return array
      */
-    private function checkRequest()
+    private function checkRequest($clientToken, $lobbyId)
     {
-        $lobbyId = \Yii::$app->request->get('gameId');
-        $clientToken = \Yii::$app->request->get('clientToken');
-
         if (empty($lobbyId)) {
             return $this->errorResponse(["GameID not set."]);
         }

@@ -178,6 +178,10 @@ class LobbyController extends Controller
             return $this->errorResponse(["Max. Player count reached."]);
         }
 
+        if ($game->state != Game::STATE_INLOBBY) {
+            return $this->errorResponse(["Game already started!"]);
+        }
+
         $alreadyInGame = Gameusers::find()->where(['game_id' => $gameId, 'user_id' => $user->user_id])->one();
 
         if (!empty($alreadyInGame)) {
