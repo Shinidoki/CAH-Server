@@ -114,4 +114,32 @@ class TestClientController extends Controller
         \Yii::$app->session->setFlash('error', $result['errors'][0]);
         return $this->redirect(Url::toRoute('test-client/lobby'));
     }
+
+    public function actionCreateGame($gameName = null)
+    {
+        $clientToken = \Yii::$app->session->get('cah-clientToken');
+        $result = \Yii::$app->runAction('lobby/create-lobby', ['clientToken' => $clientToken, 'gameName' => $gameName]);
+
+        if ($result['success']) {
+            \Yii::$app->session->setFlash('success', "Game created");
+            return $this->redirect(Url::toRoute('test-client/lobby'));
+        }
+
+        \Yii::$app->session->setFlash('error', $result['errors'][0]);
+        return $this->redirect(Url::toRoute('test-client/lobby'));
+    }
+
+    public function actionStart($id)
+    {
+        $clientToken = \Yii::$app->session->get('cah-clientToken');
+        $result = \Yii::$app->runAction('lobby/start-game', ['gameId' => $id, 'clientToken' => $clientToken]);
+
+        if ($result['success']) {
+            \Yii::$app->session->setFlash('success', "Game started");
+            return $this->redirect(Url::toRoute('test-client/lobby'));
+        }
+
+        \Yii::$app->session->setFlash('error', $result['errors'][0]);
+        return $this->redirect(Url::toRoute('test-client/lobby'));
+    }
 }

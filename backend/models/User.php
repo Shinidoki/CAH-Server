@@ -129,4 +129,9 @@ class User extends \yii\db\ActiveRecord
     {
         return $this->hasMany(Gamecards::className(), ['user_id' => 'user_id']);
     }
+
+    public function getHandCards()
+    {
+        return $this->getGamecards()->joinWith('card')->where(['is_chosen' => 0, 'is_black' => 0])->all();
+    }
 }

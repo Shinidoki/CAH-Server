@@ -161,11 +161,13 @@ class CardController extends Controller
      * -clientToken
      * -gameId
      *
+     * @param $clientToken
+     * @param $gameId
      * @return array
      */
-    public function actionGetCurrentCards()
+    public function actionGetCurrentCards($clientToken, $gameId)
     {
-        $check = $this->checkRequest();
+        $check = $this->checkRequest($clientToken, $gameId);
         if (!$check['success']) {
             return $check;
         }
@@ -187,11 +189,13 @@ class CardController extends Controller
      * -clientToken
      * -gameId
      *
+     * @param $clientToken
+     * @param $gameId
      * @return array
      */
-    public function actionGetCurrentBlackcard()
+    public function actionGetCurrentBlackcard($clientToken, $gameId)
     {
-        $check = $this->checkRequest();
+        $check = $this->checkRequest($clientToken, $gameId);
         if (!$check['success']) {
             return $check;
         }

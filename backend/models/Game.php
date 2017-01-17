@@ -191,7 +191,7 @@ class Game extends \yii\db\ActiveRecord
      */
     public function getCurrentBlackCard()
     {
-        return $this->getCards()->joinWith('gamecards')->where(['is_black' => 1])->andWhere(['IS NOT', 'user_id', NULL])->one();
+        return $this->getCards()->joinWith('gamecards')->where(['is_black' => 1, 'game_id' => $this->game_id])->andWhere(['IS NOT', 'user_id', NULL])->one();
     }
 
     /**

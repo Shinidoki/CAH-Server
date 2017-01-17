@@ -27,6 +27,18 @@ $this->registerAssetBundle(\frontend\assets\CahAsset::className());
         echo \yii\bootstrap\Html::a($back, \yii\helpers\Url::toRoute('test-client/draw') . '?id=' . $game->game_id);
         ?>
     </div>
+    <div class="col-xs-3">
+        <?php
+        if ($game->host_user_id == $user->user_id) {
+            $back = \yii\bootstrap\Html::button(
+                \rmrevin\yii\fontawesome\FA::icon('play') . ' Start Game',
+                ['class' => 'btn btn-success']
+            );
+            echo \yii\bootstrap\Html::a($back, \yii\helpers\Url::toRoute('test-client/start') . '?id=' . $game->game_id);
+        }
+
+        ?>
+    </div>
 </div>
 
 
@@ -105,22 +117,22 @@ $this->registerAssetBundle(\frontend\assets\CahAsset::className());
     </div>
 </div>
 
+
 <div class="row">
-    <?php if (empty($user->gamecards)) { ?>
+    <?php $handCards = $user->getHandCards();
+    if (empty($handCards)) { ?>
         <span class="text-center"> DRAW CARDS! </span>
     <?php } else {
-        foreach ($user->gamecards as $gamecard) { ?>
+        foreach ($handCards as $gamecard) { ?>
             <a href="#">
                 <div class="cah-card cah-white col-xs-3">
                     <div class="cah-textcontainer">
-        <span class="cah-cardtext">
+            <span class="cah-cardtext">
             <?= $gamecard->card->text ?>
-        </span>
+            </span>
                     </div>
                 </div>
             </a>
         <?php }
     } ?>
-
 </div>
-

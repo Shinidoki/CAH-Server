@@ -82,6 +82,21 @@ $this->title = 'CAH TestClient - Home';
                         ?>
                     </td>
                 </tr>
+                <tr>
+                    <th>Create Game</th>
+                    <td>
+                        <?= \yii\helpers\Html::beginForm(\yii\helpers\Url::toRoute('test-client/create-game'), 'get'); ?>
+                        <div class="row">
+                            <div class="col-sm-6 col-xs-12">
+                                <?= \yii\helpers\Html::input('text', 'gameName', null, ['class' => 'form-control']); ?>
+                            </div>
+                            <div class="col-sm-6 col-xs-12">
+                                <?= \yii\helpers\Html::submitButton('Create Game', ['class' => 'btn btn-success']); ?>
+                            </div>
+                        </div>
+                        <?= \yii\helpers\Html::endForm(); ?>
+                    </td>
+                </tr>
                 </tbody>
             </table>
         </div>
