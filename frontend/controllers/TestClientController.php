@@ -9,6 +9,7 @@ use yii\base\DynamicModel;
 use yii\data\ActiveDataProvider;
 use yii\helpers\Url;
 use yii\web\Controller;
+use yii\web\Response;
 
 class TestClientController extends Controller
 {
@@ -95,9 +96,13 @@ class TestClientController extends Controller
         $clientToken = \Yii::$app->session->get('cah-clientToken');
         $user = User::find()->where(['generated_id' => $clientToken])->one();
 
+        /** @var Game $game */
         $game = $user->getGames()->with(['categories', 'users'])->one();
+        $result = \Yii::$app->runAction('game/get-current-chosen-cards', ['clientToken' => $clientToken, 'gameId' => $game->game_id]);
+        $chosenCards = empty($result['cards']) ? [] : $result['cards'];
 
-        return $this->render('lobby', ['user' => $user, 'game' => $game]);
+        \Yii::$app->response->format = Response::FORMAT_HTML;
+        return $this->render('lobby', ['user' => $user, 'game' => $game, 'chosenCards' => $chosenCards]);
     }
 
     public function actionDraw($id)
@@ -136,6 +141,48 @@ class TestClientController extends Controller
 
         if ($result['success']) {
             \Yii::$app->session->setFlash('success', "Game started");
+            return $this->redirect(Url::toRoute('test-client/lobby'));
+        }
+
+        \Yii::$app->session->setFlash('error', $result['errors'][0]);
+        return $this->redirect(Url::toRoute('test-client/lobby'));
+    }
+
+    public function actionPlayCard($game, $card)
+    {
+        $clientToken = \Yii::$app->session->get('cah-clientToken');
+        $result = \Yii::$app->runAction('game/play-card', ['clientToken' => $clientToken, 'gameId' => $game, 'cardId' => $card]);
+
+        if ($result['success']) {
+            \Yii::$app->session->setFlash('success', "Card played");
+            return $this->redirect(Url::toRoute('test-client/lobby'));
+        }
+
+        \Yii::$app->session->setFlash('error', $result['errors'][0]);
+        return $this->redirect(Url::toRoute('test-client/lobby'));
+    }
+
+    public function actionSelectCard($game, $card)
+    {
+        $clientToken = \Yii::$app->session->get('cah-clientToken');
+        $result = \Yii::$app->runAction('game/choose-winner', ['clientToken' => $clientToken, 'gameId' => $game, 'cardId' => $card]);
+
+        if ($result['success']) {
+            \Yii::$app->session->setFlash('success', "Winner chosen!");
+            return $this->redirect(Url::toRoute('test-client/lobby'));
+        }
+
+        \Yii::$app->session->setFlash('error', $result['errors'][0]);
+        return $this->redirect(Url::toRoute('test-client/lobby'));
+    }
+
+    public function actionNextRound($id)
+    {
+        $clientToken = \Yii::$app->session->get('cah-clientToken');
+        $result = \Yii::$app->runAction('game/next-round', ['clientToken' => $clientToken, 'gameId' => $id]);
+
+        if ($result['success']) {
+            \Yii::$app->session->setFlash('success', "Next Round started!");
             return $this->redirect(Url::toRoute('test-client/lobby'));
         }
 

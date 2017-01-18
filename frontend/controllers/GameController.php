@@ -31,11 +31,14 @@ class GameController extends Controller
      * -gameId
      * -cardId (the id of the card that should be played)
      *
+     * @param $clientToken
+     * @param $gameId
+     * @param $cardId
      * @return array
      */
-    public function actionPlayCard()
+    public function actionPlayCard($clientToken, $gameId, $cardId)
     {
-        $check = $this->checkRequest();
+        $check = $this->checkRequest($clientToken, $gameId);
         if (!$check['success']) {
             return $check;
         }
@@ -50,7 +53,7 @@ class GameController extends Controller
         }
 
         /** @var Gamecards $playedCard */
-        $playedCard = Gamecards::find()->where(['game_id' => $lobby->game_id, 'card_id' => \Yii::$app->request->get('cardId'), 'user_id' => $user->user_id])->one();
+        $playedCard = Gamecards::find()->where(['game_id' => $lobby->game_id, 'card_id' => $cardId, 'user_id' => $user->user_id])->one();
 
         if (empty($playedCard)) {
             return $this->errorResponse(["This card is not in your Hand!"]);
@@ -77,13 +80,12 @@ class GameController extends Controller
     /**
      * Checks the gameId and clientToken of a request
      *
+     * @param $clientToken
+     * @param $lobbyId
      * @return array
      */
-    private function checkRequest()
+    private function checkRequest($clientToken, $lobbyId)
     {
-        $lobbyId = \Yii::$app->request->get('gameId');
-        $clientToken = \Yii::$app->request->get('clientToken');
-
         if (empty($lobbyId)) {
             return $this->errorResponse(["gameId not set."]);
         }
@@ -104,7 +106,7 @@ class GameController extends Controller
             return $this->errorResponse(["No Lobby with this ID found or you are not a member of this lobby"]);
         }
 
-        if ($lobby->state != Game::STATE_STARTED) {
+        if ($lobby->state != Game::STATE_STARTED && $lobby->state != Game::STATE_END_OF_ROUND) {
             return $this->errorResponse(["Lobby is not started!"]);
         }
         $user->updateActivity();
@@ -147,9 +149,9 @@ class GameController extends Controller
         return ['success' => true, 'user' => $user];
     }
 
-    public function actionChooseWinner()
+    public function actionChooseWinner($clientToken, $gameId, $cardId)
     {
-        $check = $this->checkRequest();
+        $check = $this->checkRequest($clientToken, $gameId);
         if (!$check['success']) {
             return $check;
         }
@@ -164,7 +166,7 @@ class GameController extends Controller
         }
 
         /** @var Gamecards $chosenCard */
-        $chosenCard = Gamecards::find()->where(['game_id' => $lobby->game_id, 'card_id' => \Yii::$app->request->get('cardId'), 'is_chosen' => 1])->one();
+        $chosenCard = Gamecards::find()->where(['game_id' => $lobby->game_id, 'card_id' => $cardId, 'is_chosen' => 1])->one();
 
         if (empty($chosenCard)) {
             return $this->errorResponse(['Invalid card id. This is not a chosen card']);
@@ -178,9 +180,9 @@ class GameController extends Controller
         return ['success' => true];
     }
 
-    public function actionNextRound()
+    public function actionNextRound($clientToken, $gameId)
     {
-        $check = $this->checkRequest();
+        $check = $this->checkRequest($clientToken, $gameId);
         if (!$check['success']) {
             return $check;
         }
@@ -228,15 +230,17 @@ class GameController extends Controller
             Gameusers::deleteAll(['game_id' => $lobby->game_id]);
         } else {
             $lobby->state = Game::STATE_STARTED;
+            Gamecards::deleteAll(['game_id' => $lobby->game_id, 'is_chosen' => 1]);
+            $lobby->getCurrentBlackCard()->delete();
         }
 
         $lobby->updateActivity();
         return ['success' => true, 'state' => $lobby->state, 'winner' => empty($winner) ? NULL : $winner->user_id];
     }
 
-    public function actionCheckWinner()
+    public function actionCheckWinner($clientToken, $gameId)
     {
-        $check = $this->checkRequest();
+        $check = $this->checkRequest($clientToken, $gameId);
         if (!$check['success']) {
             return $check;
         }
@@ -266,11 +270,13 @@ class GameController extends Controller
      * -clientToken
      * -gameId
      *
+     * @param $clientToken
+     * @param $gameId
      * @return array
      */
-    public function actionGetCurrentChosenCards()
+    public function actionGetCurrentChosenCards($clientToken, $gameId)
     {
-        $check = $this->checkRequest();
+        $check = $this->checkRequest($clientToken, $gameId);
         if (!$check['success']) {
             return $check;
         }

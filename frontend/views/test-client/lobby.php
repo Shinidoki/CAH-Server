@@ -2,6 +2,7 @@
 /* @var $this yii\web\View */
 /** @var $user \backend\models\User */
 /** @var $game \backend\models\Game */
+/** @var $chosenCards array */
 
 $this->registerAssetBundle(\rmrevin\yii\fontawesome\AssetBundle::className());
 $this->registerAssetBundle(\frontend\assets\CahAsset::className());
@@ -30,17 +31,26 @@ $this->registerAssetBundle(\frontend\assets\CahAsset::className());
     <div class="col-xs-3">
         <?php
         if ($game->host_user_id == $user->user_id) {
-            $back = \yii\bootstrap\Html::button(
-                \rmrevin\yii\fontawesome\FA::icon('play') . ' Start Game',
-                ['class' => 'btn btn-success']
-            );
-            echo \yii\bootstrap\Html::a($back, \yii\helpers\Url::toRoute('test-client/start') . '?id=' . $game->game_id);
+            switch ($game->state) {
+                case \backend\models\Game::STATE_INLOBBY:
+                    $start = \yii\bootstrap\Html::button(
+                        \rmrevin\yii\fontawesome\FA::icon('play') . ' Start Game',
+                        ['class' => 'btn btn-success']
+                    );
+                    echo \yii\bootstrap\Html::a($start, \yii\helpers\Url::toRoute('test-client/start') . '?id=' . $game->game_id);
+                    break;
+            }
         }
-
+        if ($user->is_judge && $game->state === \backend\models\Game::STATE_END_OF_ROUND) {
+            $start = \yii\bootstrap\Html::button(
+                \rmrevin\yii\fontawesome\FA::icon('forward') . ' Next Round',
+                ['class' => 'btn btn-primary']
+            );
+            echo \yii\bootstrap\Html::a($start, \yii\helpers\Url::toRoute('test-client/next-round') . '?id=' . $game->game_id);
+        }
         ?>
     </div>
 </div>
-
 
 <div class="row">
     <div class="col-sm-6 col-xs-12">
@@ -117,22 +127,51 @@ $this->registerAssetBundle(\frontend\assets\CahAsset::className());
     </div>
 </div>
 
+<?php if (!empty($chosenCards)) : ?>
+    <h3>Chosen Cards:</h3>
 
-<div class="row">
-    <?php $handCards = $user->getHandCards();
-    if (empty($handCards)) { ?>
-        <span class="text-center"> DRAW CARDS! </span>
-    <?php } else {
-        foreach ($handCards as $gamecard) { ?>
-            <a href="#">
+    <?php
+    foreach ($chosenCards as $chosenSet) {
+        echo "<div class=\"row\">";
+        foreach ($chosenSet as $chosenCard) {
+            ?>
+
+            <a href="<?= \yii\helpers\Url::toRoute('test-client/select-card') . '?game=' . $game->game_id . '&card=' . $chosenCard['card_id'] ?>">
                 <div class="cah-card cah-white col-xs-3">
                     <div class="cah-textcontainer">
-            <span class="cah-cardtext">
-            <?= $gamecard->card->text ?>
-            </span>
+                        <span class="cah-cardtext">
+                            <?= $chosenCard['text'] ?>
+                        </span>
                     </div>
                 </div>
             </a>
-        <?php }
-    } ?>
-</div>
+            <?php
+        }
+        echo "</div>";
+    }
+    ?>
+
+<?php endif; ?>
+
+<?php if ($user->is_judge !== 1) : ?>
+    <h3>Your Hand:</h3>
+    <div class="row">
+        <?php $handCards = $user->getHandCards();
+        if (empty($handCards)) { ?>
+            <span class="text-center"> DRAW CARDS! </span>
+        <?php } else {
+            /** @var \backend\models\Gamecards[] $handCards */
+            foreach ($handCards as $gamecard) { ?>
+                <a href="<?= \yii\helpers\Url::toRoute('test-client/play-card') . '?game=' . $game->game_id . '&card=' . $gamecard->card_id ?>">
+                    <div class="cah-card cah-white col-xs-3">
+                        <div class="cah-textcontainer">
+                            <span class="cah-cardtext">
+                                <?= $gamecard->card->text ?>
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            <?php }
+        } ?>
+    </div>
+<?php endif; ?>
