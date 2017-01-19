@@ -24,7 +24,6 @@ class GameController extends Controller
 
     /**
      * Lets the player select a card to play
-     * TODO: We still need a function for picking the winning card. Maybe also in this function?!
      *
      * Request params:
      * -clientToken
@@ -174,7 +173,7 @@ class GameController extends Controller
 
         $chosenCard->user->score++;
         $chosenCard->user->updateActivity();
-        Gamecards::deleteAll(new Expression("game_id = {$lobby->game_id} AND is_chosen = 1 AND card_id <> {$chosenCard->card_id}"));
+        Gamecards::deleteAll(new Expression("game_id = {$lobby->game_id} AND is_chosen = 1 AND user_id <> {$chosenCard->user_id}"));
         $lobby->state = Game::STATE_END_OF_ROUND;
         $lobby->updateActivity();
         return ['success' => true];
@@ -227,7 +226,6 @@ class GameController extends Controller
         if ($gameEnded) {
             $lobby->state = Game::STATE_FINISHED;
             Gamecards::deleteAll(['game_id' => $lobby->game_id]);
-            Gameusers::deleteAll(['game_id' => $lobby->game_id]);
         } else {
             $lobby->state = Game::STATE_STARTED;
             Gamecards::deleteAll(['game_id' => $lobby->game_id, 'is_chosen' => 1]);

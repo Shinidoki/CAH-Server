@@ -104,6 +104,7 @@ class LobbyController extends Controller
         $newGame->game_name = empty($gameName) ? "CAH Game ".mt_rand() : $gameName;
         $newGame->state = Game::STATE_INLOBBY;
         $newGame->host_user_id = $user->user_id;
+        $newGame->target_score = 5;
 
         if ($newGame->updateActivity()) {
             $newGame->link('hostUser', $user);
@@ -111,6 +112,7 @@ class LobbyController extends Controller
             $user->removeFromAllGames();
             $user->link('games',$newGame);
             $user->is_judge = 1;
+            $user->score = 0;
             $user->updateActivity();
             return [
                 'success' => true,
@@ -191,6 +193,7 @@ class LobbyController extends Controller
         $user->removeFromAllGames();
 
         $user->is_judge = 0;
+        $user->score = 0;
         $user->updateActivity();
         $game->updateActivity();
         $game->link('users', $user);
@@ -212,8 +215,8 @@ class LobbyController extends Controller
     {
         $gameId = \Yii::$app->request->get('gameId');
 
-        if (!empty($lobbyId)) {
-            Game::deleteAll(['game_id' => $lobbyId]);
+        if (!empty($gameId)) {
+            Game::deleteAll(['game_id' => $gameId]);
         } else {
             Game::deleteAll();
         }
