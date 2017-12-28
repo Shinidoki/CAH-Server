@@ -56,3 +56,5 @@ $RECYCLE.BIN/
 /frontend/runtime/
 /backend/runtime/
 /console/runtime/
+/yii
+/yii_test
