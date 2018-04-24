@@ -113,10 +113,10 @@ class TestClientController extends Controller
 
         if ($result['success']) {
             \Yii::$app->session->setFlash('success', "Cards Drawn");
-            return $this->redirect(Url::toRoute('test-client/lobby'));
+        } else {
+            \Yii::$app->session->setFlash('error', $result['errors'][0]);
         }
 
-        \Yii::$app->session->setFlash('error', $result['errors'][0]);
         return $this->redirect(Url::toRoute('test-client/lobby'));
     }
 
@@ -127,10 +127,10 @@ class TestClientController extends Controller
 
         if ($result['success']) {
             \Yii::$app->session->setFlash('success', "Game created");
-            return $this->redirect(Url::toRoute('test-client/lobby'));
+        } else {
+            \Yii::$app->session->setFlash('error', $result['errors'][0]);
         }
-
-        \Yii::$app->session->setFlash('error', $result['errors'][0]);
+        
         return $this->redirect(Url::toRoute('test-client/lobby'));
     }
 
@@ -141,10 +141,10 @@ class TestClientController extends Controller
 
         if ($result['success']) {
             \Yii::$app->session->setFlash('success', "Game started");
-            return $this->redirect(Url::toRoute('test-client/lobby'));
+        } else {
+            \Yii::$app->session->setFlash('error', $result['errors'][0]);
         }
-
-        \Yii::$app->session->setFlash('error', $result['errors'][0]);
+        
         return $this->redirect(Url::toRoute('test-client/lobby'));
     }
 
@@ -155,10 +155,10 @@ class TestClientController extends Controller
 
         if ($result['success']) {
             \Yii::$app->session->setFlash('success', "Card played");
-            return $this->redirect(Url::toRoute('test-client/lobby'));
+        } else {
+            \Yii::$app->session->setFlash('error', $result['errors'][0]);
         }
 
-        \Yii::$app->session->setFlash('error', $result['errors'][0]);
         return $this->redirect(Url::toRoute('test-client/lobby'));
     }
 
@@ -170,9 +170,10 @@ class TestClientController extends Controller
         if ($result['success']) {
             \Yii::$app->session->setFlash('success', "Winner chosen!");
             return $this->redirect(Url::toRoute('test-client/lobby'));
+        } else {
+            \Yii::$app->session->setFlash('error', $result['errors'][0]);
         }
-
-        \Yii::$app->session->setFlash('error', $result['errors'][0]);
+        
         return $this->redirect(Url::toRoute('test-client/lobby'));
     }
 
@@ -183,10 +184,10 @@ class TestClientController extends Controller
 
         if ($result['success']) {
             \Yii::$app->session->setFlash('success', "Next Round started!");
-            return $this->redirect(Url::toRoute('test-client/lobby'));
+        } else {
+            \Yii::$app->session->setFlash('error', $result['errors'][0]);
         }
 
-        \Yii::$app->session->setFlash('error', $result['errors'][0]);
         return $this->redirect(Url::toRoute('test-client/lobby'));
     }
 }

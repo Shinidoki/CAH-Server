@@ -6,9 +6,17 @@
 
 $this->registerAssetBundle(\rmrevin\yii\fontawesome\AssetBundle::className());
 $this->registerAssetBundle(\frontend\assets\CahAsset::className());
+\yii\widgets\Pjax::begin([
+        'id' => 'gameLobby'
+]);
 
+$this->registerJs(' 
+    setTimeout(function() {
+    $.pjax.reload({container:"#gameLobby"});
+}, 2000);
+    ', \yii\web\VIEW::POS_HEAD);
 ?>
-
+<?= \common\widgets\Alert::widget() ?>
 <div class="row">
     <div class="col-xs-3">
         <?php
@@ -175,3 +183,6 @@ $this->registerAssetBundle(\frontend\assets\CahAsset::className());
         } ?>
     </div>
 <?php endif; ?>
+
+<?php
+\yii\widgets\Pjax::end();

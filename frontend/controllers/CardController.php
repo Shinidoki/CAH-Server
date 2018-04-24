@@ -11,6 +11,7 @@ namespace frontend\controllers;
 
 use backend\models\Game;
 use backend\models\Gamecards;
+use backend\models\Gameusers;
 use backend\models\User;
 use yii\web\Controller;
 use yii\web\Response;
@@ -37,6 +38,7 @@ class CardController extends Controller
      * @param $clientToken
      * @param $gameId
      * @return array
+     * @throws \yii\db\Exception
      */
     public function actionDrawCard($clientToken, $gameId)
     {
@@ -74,11 +76,11 @@ class CardController extends Controller
             $usercards = [];
             foreach($card as $crd){
                 $usercards[]=$gamecards[$crd];
-                \Yii::$app->db->createCommand()->update('cah_gamecards', ['user_id' => $user->user_id], ['game_id' => $game->game_id, 'card_id' => $gamecards[$crd]->card_id])->execute();
+                \Yii::$app->db->createCommand()->update(Gamecards::tableName(), ['user_id' => $user->user_id], ['game_id' => $game->game_id, 'card_id' => $gamecards[$crd]->card_id])->execute();
             }
             return ['success' => true, 'cards' => $usercards];
         }else{
-            \Yii::$app->db->createCommand()->update('cah_gamecards',['user_id'=>$user->user_id],['game_id'=>$game->game_id, 'card_id'=>$gamecards[$card]->card_id])->execute();
+            \Yii::$app->db->createCommand()->update(Gamecards::tableName(),['user_id'=>$user->user_id],['game_id'=>$game->game_id, 'card_id'=>$gamecards[$card]->card_id])->execute();
             return ['success' => true, 'cards' => [$gamecards[$card]]];
         }
     }
@@ -106,7 +108,7 @@ class CardController extends Controller
         $user = $tokenCheck['user'];
 
         /** @var Game $lobby */
-        $lobby = Game::find()->joinWith('gameusers')->where(['cah_game.game_id' => $lobbyId, 'cah_gameusers.user_id' => $user->user_id])->one();
+        $lobby = Game::find()->joinWith('gameusers')->where([Game::tableName().'.game_id' => $lobbyId, Gameusers::tableName().'.user_id' => $user->user_id])->one();
 
         if (empty($lobby)) {
             return $this->errorResponse(["No Lobby with this ID found or you are not a member of this lobby"]);

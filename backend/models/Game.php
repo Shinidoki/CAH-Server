@@ -143,7 +143,8 @@ class Game extends \yii\db\ActiveRecord
     }
 
     /**
-     * Starts the game.
+     * Starts the game
+     * @throws \yii\db\Exception
      */
     public function start()
     {

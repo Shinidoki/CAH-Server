@@ -23,8 +23,7 @@ class CardImportController extends Controller
     {
         $url = 'http://www.crhallberg.com/cah/output.php';
 
-        $myvars = 'decks%5B%5D=Base&decks%5B%5D=CAHe1&decks%5B%5D=CAHe2&decks%5B%5D=CAHe3&decks%5B%5D=CAHe4&decks%5B%5D=CAHe5&decks%5B%5D=CAHe6&decks%5B%5D=90s&decks%5B%5D=Box&decks%5B%5D=fantasy&decks%5B%5D=food&decks%5B%5D=science&decks%5B%5D=www&decks%5B%5D=hillary&decks%5B%5D=trumpvote&decks%5B%5D=xmas2012&decks%5B%5D=xmas2013&decks%5B%5D=PAXE2013&decks%5B%5D=PAXP2013&decks%5B%5D=PAXE2014&decks%5B%5D=PAXEP2014&decks%5B%5D=PAXPP2014&decks%5B%5D=PAX2015&decks%5B%5D=HOCAH&decks%5B%5D=reject&decks%5B%5D=reject2&decks%5B%5D=Canadian&decks%5B%5D=misprint&type=JSON';
-
+        $myvars = 'decks[]=Base&type=JSON';
         $ch = curl_init( $url );
         curl_setopt( $ch, CURLOPT_POST, 1);
         curl_setopt( $ch, CURLOPT_POSTFIELDS, $myvars);
@@ -33,6 +32,7 @@ class CardImportController extends Controller
         curl_setopt( $ch, CURLOPT_RETURNTRANSFER, 1);
 
         $response = curl_exec( $ch );
+
         $JSON = Json::decode($response);
 
         $transaction = \Yii::$app->db->beginTransaction();
@@ -89,6 +89,78 @@ class CardImportController extends Controller
         {
             $transaction->rollBack();
             Console::output($e->getMessage());
+        }
+    }
+
+    public function actionImportHangoutsCards()
+    {
+        $url = 'https://raw.githubusercontent.com/samurailink3/hangouts-against-humanity/master/source/data/cards.js';
+        /** @var Category[] $categories */
+        $categories = [];
+
+        $response = file_get_contents($url);
+
+        $response = str_replace('masterCards = ', '', $response);
+        $response = str_replace('\\\'', '\'', $response);
+        $response = str_replace('\”', '\"', $response);
+
+
+        $JSON = Json::decode($response);
+
+        $transaction = \Yii::$app->db->beginTransaction();
+
+        try{
+            Card::deleteAll();
+            Category::deleteAll();
+
+            $total = count($JSON);
+            Console::startProgress(0, $total);
+            foreach ($JSON as $i => $card)
+            {
+                if(!empty($categories[$card['expansion']])){
+                    $cat = $categories[$card['expansion']];
+                } else {
+                    $cat = new Category();
+                    $cat->name = $card['expansion'];
+                    $cat->save();
+                    $categories[$card['expansion']] = $cat;
+                }
+
+                switch($card['cardType']){
+                    case 'Q':
+                        $crd = new Card();
+                        $crd->is_black = 1;
+                        $crd->text = $card['text'];
+                        $crd->blanks = $card['numAnswers'];
+                        if ($crd->save()) {
+                            $crd->setIsNewRecord(false);
+                            $crd->link('cats', $cat);
+                        }else{
+                            VarDumper::dump($crd->errors, 10, true);
+                        }
+                        break;
+                    case 'A':
+                        $crd = new Card();
+                        $crd->text = $card['text'];
+                        $crd->blanks = $card['numAnswers'];
+                        $crd->is_black = 0;
+                        if ($crd->save()) {
+                            $crd->setIsNewRecord(false);
+                            $crd->link('cats', $cat);
+                        }else{
+                            VarDumper::dump($crd->errors, 10, true);
+                        }
+                }
+
+                Console::updateProgress($i+1, $total);
+            }
+            $transaction->commit();
+            Console::endProgress();
+            Console::output("Import erfolgreich!");
+        } catch (\Throwable $e){
+            $transaction->rollBack();
+            Console::output($e->getMessage());
+            Console::output($e->getTraceAsString());
         }
     }
 }

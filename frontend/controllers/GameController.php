@@ -61,6 +61,10 @@ class GameController extends Controller
         $blackCard = $lobby->getCurrentBlackCard();
         $chosenCards = $user->getCurrentChosenCards();
 
+        if(empty($blackCard)){
+            return $this->errorResponse(['There is no black card drawn yet!']);
+        }
+
         if (count($chosenCards) >= $blackCard->blanks) {
             return $this->errorResponse(['You cannot play any more cards than blanks on the Black card!']);
         }
@@ -99,7 +103,7 @@ class GameController extends Controller
         $user = $tokenCheck['user'];
 
         /** @var Game $lobby */
-        $lobby = Game::find()->joinWith('gameusers')->where(['cah_game.game_id' => $lobbyId, 'cah_gameusers.user_id' => $user->user_id])->one();
+        $lobby = Game::find()->joinWith('gameusers')->where([Game::tableName().'.game_id' => $lobbyId, Gameusers::tableName().'.user_id' => $user->user_id])->one();
 
         if (empty($lobby)) {
             return $this->errorResponse(["No Lobby with this ID found or you are not a member of this lobby"]);
@@ -290,8 +294,9 @@ class GameController extends Controller
         }
 
         $game->timeOutUsers();
+        $blackCard = $game->getCurrentBlackCard();
 
-        if ($game->getCurrentBlackCard()->blanks * ($game->getGameusers()->count() - 1) <= count($game->getGamecards()->andWhere(['is_chosen' => 1])->all())) {
+        if (!empty($blackCard) && $blackCard->blanks * ($game->getGameusers()->count() - 1) <= count($game->getGamecards()->andWhere(['is_chosen' => 1])->all())) {
             $allChosen = true;
         }else{
             $allChosen = false;
