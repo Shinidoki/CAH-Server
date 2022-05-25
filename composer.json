@@ -1,7 +1,12 @@
 {
-    "name": "shinidoki/CAH",
+    "name": "shinidoki/cah",
     "description": "Carson Against Humanity",
-    "keywords": ["yii2", "cah", "cards against humanity", "carson against humanity"],
+    "keywords": [
+        "yii2",
+        "cah",
+        "cards against humanity",
+        "carson against humanity"
+    ],
     "homepage": "http://cah.heretics.de",
     "type": "project",
     "license": "BSD-3-Clause",
