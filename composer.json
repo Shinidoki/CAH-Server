@@ -15,22 +15,22 @@
     },
     "minimum-stability": "stable",
     "require": {
-        "php": ">=5.4.0",
-        "yiisoft/yii2": "~2.0.6",
-        "yiisoft/yii2-bootstrap": "~2.0.0",
-        "yiisoft/yii2-swiftmailer": "~2.0.0",
-        "rmrevin/yii2-fontawesome": "~2.17",
-        "kartik-v/yii2-grid": "^3.1",
-        "kartik-v/yii2-dialog": "^1.0.3",
+        "php": ">=8.2",
+        "yiisoft/yii2": "*",
+        "yiisoft/yii2-bootstrap": "*",
+        "yiisoft/yii2-swiftmailer": "*",
+        "rmrevin/yii2-fontawesome": "*",
+        "kartik-v/yii2-grid": "*",
+        "kartik-v/yii2-dialog": "*",
         "tugmaks/yii2-rss-reader": "@dev"
     },
     "require-dev": {
-        "yiisoft/yii2-debug": "~2.0.0",
-        "yiisoft/yii2-gii": "~2.0.0",
-        "yiisoft/yii2-faker": "~2.0.0",
-
-        "codeception/base": "^2.2.3",
-        "codeception/verify": "~0.3.1"
+        "roave/security-advisories": "dev-latest",
+        "yiisoft/yii2-debug": "*",
+        "yiisoft/yii2-gii": "*",
+        "yiisoft/yii2-faker": "*",
+        "codeception/base": "*",
+        "codeception/verify": "*"
 
     },
     "config": {
